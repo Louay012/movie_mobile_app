@@ -1,19 +1,18 @@
-// lib/screens/signup_screen.dart
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import 'login.dart';
+import 'signup.dart';
 
-class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -21,11 +20,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
-    _nameCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _signUp() async {
+  Future<void> _logIn() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -36,7 +34,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     if (mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Account created! (Demo)')));
+      ).showSnackBar(const SnackBar(content: Text('Logged in! (Demo)')));
       // Navigator.pushReplacement(... home screen);
     }
   }
@@ -44,7 +42,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(title: const Text('Log In')),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Form(
@@ -61,23 +59,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Join MovieFlix',
+                'Welcome Back to MovieFlix',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 30),
-
-              // Name
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => v!.trim().isEmpty ? 'Enter your name' : null,
-              ),
-              const SizedBox(height: 16),
 
               // Email
               TextFormField(
@@ -118,9 +104,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Sign Up Button
+              // Log In Button
               ElevatedButton(
-                onPressed: _isLoading ? null : _signUp,
+                onPressed: _isLoading ? null : _logIn,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -129,32 +115,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Sign Up', style: TextStyle(fontSize: 18)),
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+                    : const Text('Log In', style: TextStyle(fontSize: 18)),
               ),
               const SizedBox(height: 16),
 
-              // Login redirect
+              // Signup redirect
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Already have an account? '),
+                  const Text("Don't have an account? "),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const LoginScreen(),
-                        ),
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SignUpScreen(),
+                          ),
                       );
                     },
-                    child: const Text('Log In'),
+                    child: const Text('Sign Up'),
                   ),
                 ],
               ),
