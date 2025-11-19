@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'screens/loading.dart';
+import 'screens/home.dart';
 
 void main() {
   runApp(const MovieApp());
@@ -19,7 +20,7 @@ class MovieApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: const LoadingScreen(), // Starts with splash / loading
+      home: HomePage(), // Starts with splash / loading
     );
   }
 }
