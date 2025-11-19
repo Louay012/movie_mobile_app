@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';   // Add this
 import 'firebase_options.dart';                      // Add this
 import 'screens/loading.dart';
+import 'screens/home.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();        // Required for async initialization
@@ -24,7 +25,7 @@ class MovieApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: const LoadingScreen(), // Starts with splash / loading
+      home: HomePage(), // Starts with splash / loading
     );
   }
 }
