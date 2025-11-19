@@ -1,8 +1,13 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';   // Add this
+import 'firebase_options.dart';                      // Add this
 import 'screens/loading.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();        // Required for async initialization
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Initialize Firebase
+  );
   runApp(const MovieApp());
 }
 

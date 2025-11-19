@@ -1,6 +1,6 @@
 // lib/screens/signup_screen.dart
 import 'package:flutter/material.dart';
-
+import '../services/auth_service.dart';
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -9,6 +9,7 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
+  final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -25,20 +26,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-    // TODO: Replace with real Firebase / Supabase / your backend call
-    await Future.delayed(const Duration(seconds: 2)); // simulate network
-    setState(() => _isLoading = false);
+  setState(() => _isLoading = true);
 
+  final user = await _authService.signUp(
+    _emailCtrl.text.trim(),
+    _passCtrl.text.trim(),
+  );
+
+  setState(() => _isLoading = false);
+
+  if (user != null) {
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Account created! (Demo)')));
-      // Navigator.pushReplacement(... home screen);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created successfully!')),
+      );
+      // Navigate to home screen or main app
+      Navigator.pushReplacementNamed(context, '/home');
+    }
+  } else {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Signup failed. Try again.')),
+      );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
