@@ -1,23 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class DatabaseService {
+class UserService {
   final CollectionReference users =
       FirebaseFirestore.instance.collection('users');
 
-  Future<void> saveUserData({
+  Future<void> createUser({
     required String uid,
-    required String name,
+    required String fullName,
     required int age,
     required String email,
-    required String photoUrl,
+    required String? photoURL,
   }) async {
     await users.doc(uid).set({
-      'uid': uid,
-      'name': name,
-      'age': age,
-      'email': email,
-      'photoUrl': photoUrl,
-      'createdAt': FieldValue.serverTimestamp(),
+      "fullName": fullName,
+      "age": age,
+      "email": email,
+      "photoURL": photoURL,
+      "createdAt": FieldValue.serverTimestamp(),
     });
   }
 }

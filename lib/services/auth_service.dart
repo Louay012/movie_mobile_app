@@ -1,4 +1,3 @@
-// lib/services/auth_service.dart
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
@@ -15,9 +14,6 @@ class AuthService {
       );
       return cred.user;
     } on FirebaseAuthException catch (e) {
-      print('Auth signUp error: $e');
-      rethrow; // let caller handle message
-    } catch (e) {
       print('Auth signUp error: $e');
       rethrow;
     }

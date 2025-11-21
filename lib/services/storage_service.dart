@@ -1,20 +1,22 @@
-// lib/services/storage_service.dart
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:uuid/uuid.dart';
+import 'package:flutter/foundation.dart'; // kIsWeb
 
 class StorageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  final _uuid = const Uuid();
 
-  /// Uploads profile image and returns download URL
-  Future<String> uploadProfileImage(File file, {required String uid}) async {
-    final ext = file.path.split('.').last;
-    final filename = 'profiles/$uid/${_uuid.v4()}.$ext';
-    final ref = _storage.ref().child(filename);
+  // Mobile upload
+  Future<String> uploadProfileImage(String uid, File file) async {
+    final ref = _storage.ref().child('profile_images/$uid.jpg');
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
+  }
 
-    final uploadTask = await ref.putFile(file);
-    final url = await ref.getDownloadURL();
-    return url;
+  // Web upload
+  Future<String> uploadProfileImageWeb(String uid, Uint8List bytes) async {
+    final ref = _storage.ref().child('profile_images/$uid.jpg');
+    await ref.putData(bytes);
+    return await ref.getDownloadURL();
   }
 }
