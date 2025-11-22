@@ -1,56 +1,170 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import 'login.dart';
 
-class HomePage extends StatelessWidget {
-  final List<String> posters = [
-    // The Dark Knight
-    "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
-    // Interstellar
-    "https://image.tmdb.org/t/p/w500/rAiYTfKGqDCRIIqo664sY9XZIvQ.jpg",
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
 
-    // Inception
-    "https://image.tmdb.org/t/p/w500/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg",
+class _HomePageState extends State<HomePage> {
+  final _auth = AuthService();
 
-    // Fight Club
-    "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
-
-    // The Matrix
-    "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg",
-
-    // The Godfather
-    "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
-
-    // Pulp Fiction
-    "https://image.tmdb.org/t/p/w500/dM2w364MScsjFf8pfMbaWUcWrR.jpg",
-
-    // Avatar
-    "https://image.tmdb.org/t/p/w500/jRXYjXNq0Cs2TcJjLkki24MLp7u.jpg",
+  final List<Map<String, String>> _movies = [
+    {
+      'title': 'Inception',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/9gk7adHYeDMPS6QyJQsQJ0O5w9K.jpg',
+    },
+    {
+      'title': 'The Dark Knight',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haI0xvwi.jpg',
+    },
+    {
+      'title': 'Interstellar',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCu244mCjIqT.jpg',
+    },
+    {
+      'title': 'The Matrix',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/viq2RY2YyEL9zIccEr9W23i2Rio.jpg',
+    },
+    {
+      'title': 'Pulp Fiction',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/dM2w06cJ0h361synchronized.jpg',
+    },
+    {
+      'title': 'Forrest Gump',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/clnyhPqj1SNgpAdeSS6margin.jpg',
+    },
+    {
+      'title': 'Fight Club',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Eg7SZlJ01IIl51.jpg',
+    },
+    {
+      'title': 'Goodfellas',
+      'poster':
+          'https://image.tmdb.org/t/p/w500/sd62HjCoAQMB870eI8kxyD54idW.jpg',
+    },
   ];
+
+  Future<void> _logout() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _auth.signOut().then((_) {
+                Navigator.pushReplacementNamed(context, '/login');
+              });
+            },
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text("Film Explorer"),
-        backgroundColor: Colors.black,
-        elevation: 0,
+        title: const Text('MovieFlix'),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
       ),
-      body: GridView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: posters.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 16,
-          crossAxisSpacing: 16,
-          childAspectRatio: 0.65,
+      body: Padding(
+        padding: const EdgeInsets.all(12),
+        child: GridView.builder(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.7,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemCount: _movies.length,
+          itemBuilder: (context, index) {
+            final movie = _movies[index];
+            return MovieCard(
+              title: movie['title']!,
+              posterUrl: movie['poster']!,
+            );
+          },
         ),
-        itemBuilder: (context, index) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.network(posters[index], fit: BoxFit.cover),
-          );
-        },
+      ),
+    );
+  }
+}
+
+class MovieCard extends StatelessWidget {
+  final String title;
+  final String posterUrl;
+
+  const MovieCard({
+    required this.title,
+    required this.posterUrl,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Tapped: $title')),
+        );
+      },
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Image.network(
+                posterUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey.shade800,
+                    child: const Icon(Icons.movie_creation_outlined),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

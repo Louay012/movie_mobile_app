@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';   // Add this
-import 'firebase_options.dart';                      // Add this
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'screens/loading.dart';
 import 'screens/signup.dart';
+import 'screens/login.dart';
+import 'screens/home.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();        // Required for async initialization
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform, // Initialize Firebase
+    options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(const MovieApp());
 }
@@ -25,7 +27,12 @@ class MovieApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: SignUpScreen(), // Starts with splash / loading
+      home: const LoadingScreen(),
+      routes: {
+        '/signup': (context) => const SignUpScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomePage(),
+      },
     );
   }
 }
