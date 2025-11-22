@@ -1,6 +1,9 @@
-// lib/screens/login_screen.dart
+// ...existing code...
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/auth_service.dart';
 import 'signup.dart';
+import 'home.dart'; // <-- added import
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _auth = AuthService();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -27,15 +31,46 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    // TODO: Replace with real Firebase / Supabase / your backend call
-    await Future.delayed(const Duration(seconds: 2)); // simulate network
-    setState(() => _isLoading = false);
+    final email = _emailCtrl.text.trim();
+    final password = _passCtrl.text;
 
-    if (mounted) {
-      ScaffoldMessenger.of(
+    try {
+      // AuthService should return a Firebase User on success (like signup)
+      User? user = await _auth.signInWithEmail(
+        email: email,
+        password: password,
+      );
+
+      if (user == null) {
+        throw Exception('Login failed');
+      }
+
+      if (!mounted) return;
+      // Replace login with home
+      Navigator.pushReplacement(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Logged in! (Demo)')));
-      // Navigator.pushReplacement(... home screen);
+        MaterialPageRoute(builder: (context) => const HomePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = e.message ?? 'Authentication error';
+      if (e.code == 'user-not-found') {
+        message = 'No user found for that email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Wrong password provided.';
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Login error: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -115,13 +150,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('Log In', style: TextStyle(fontSize: 18)),
               ),
               const SizedBox(height: 16),
@@ -134,10 +169,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextButton(
                     onPressed: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SignUpScreen(),
-                          ),
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SignUpScreen(),
+                        ),
                       );
                     },
                     child: const Text('Sign Up'),
@@ -151,3 +186,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+// ...existing code...

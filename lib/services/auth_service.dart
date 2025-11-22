@@ -19,6 +19,18 @@ class AuthService {
     }
   }
 
+  // Sign in and return the Firebase User
+  Future<User?> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final userCred = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    return userCred.user;
+  }
+
   Future<void> updateProfile({
     required User user,
     String? displayName,
