@@ -1,8 +1,9 @@
+// ...existing code...
 import 'dart:async';
 import 'package:flutter/material.dart';
-// removed direct http usage — using MovieService instead
-import 'movie_details.dart';
+import '../services/favorites_service.dart';
 import '../services/movie_service.dart';
+import 'movie_details.dart';
 
 class Movie {
   final int id;
@@ -26,49 +27,13 @@ class Movie {
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
-    // Support both the custom API shape and TMDB v3 shape (from MovieService)
     final rawId = json['id'] ?? json['movieId'] ?? json['tmdb_id'];
     final id = rawId is int ? rawId : int.tryParse('$rawId') ?? 0;
 
     final title =
-        (json['title'] ??
-                json['name'] ??
-                json['original_title'] ??
-                json['movie_title'] ??
-                '')
+        (json['title'] ?? json['name'] ?? json['original_title'] ?? 'Untitled')
             .toString();
 
-    // description / overview
-    final description = (json['description'] ?? json['overview'])?.toString();
-
-    // year from 'year' or from TMDB 'release_date'
-    int? year;
-    if (json['year'] is int) {
-      year = json['year'] as int;
-    } else if (json['release_date'] != null) {
-      final date = json['release_date'].toString();
-      if (date.length >= 4) {
-        year = int.tryParse(date.substring(0, 4));
-      }
-    }
-
-    final runningTime =
-        json['runningTime']?.toString() ?? json['runtime']?.toString();
-
-    // genre: either list of names or list of ids (we keep names if provided)
-    List<String>? genre;
-    if (json['genre'] is List) {
-      genre = List<String>.from(json['genre'].map((e) => e.toString()));
-    } else if (json['genres'] is List) {
-      // TMDB sometimes returns list of objects [{id,name},...]
-      final gs = json['genres'] as List;
-      genre = gs.map((g) {
-        if (g is Map && g['name'] != null) return g['name'].toString();
-        return g.toString();
-      }).toList();
-    }
-
-    // poster: prefer full url, otherwise TMDB poster_path
     String? poster;
     if (json['poster'] != null) {
       poster = json['poster'].toString();
@@ -76,15 +41,34 @@ class Movie {
       poster = json['poster_path'].toString();
     } else if (json['posterUrl'] != null) {
       poster = json['posterUrl'].toString();
-    } else if (json['backdrop_path'] != null) {
-      poster = json['backdrop_path'].toString();
     }
 
+    final description =
+        json['description']?.toString() ?? json['overview']?.toString();
+    final year = json['year'] is int
+        ? json['year'] as int
+        : (json['release_date'] != null &&
+                  json['release_date'].toString().length >= 4
+              ? int.tryParse(json['release_date'].toString().substring(0, 4))
+              : int.tryParse('${json['year']}'));
+    final runningTime =
+        json['runningTime']?.toString() ?? json['runtime']?.toString();
+    final genre = (json['genre'] is List)
+        ? List<String>.from(json['genre'].map((e) => e.toString()))
+        : (json['genres'] is List
+              ? List<String>.from(
+                  (json['genres'] as List).map(
+                    (g) => g is Map && g['name'] != null
+                        ? g['name'].toString()
+                        : g.toString(),
+                  ),
+                )
+              : null);
     final slug = json['slug']?.toString();
 
     return Movie(
       id: id,
-      title: title.isNotEmpty ? title : 'Untitled',
+      title: title,
       posterPath: poster,
       description: description,
       year: year,
@@ -98,7 +82,6 @@ class Movie {
     if (posterPath == null || posterPath!.isEmpty) return '';
     final p = posterPath!;
     if (p.startsWith('http')) return p;
-    // assume TMDB path if not a full URL
     return 'https://image.tmdb.org/t/p/w500$p';
   }
 }
@@ -116,16 +99,33 @@ class _HomePageState extends State<HomePage> {
   List<Movie> _filtered = [];
   String _query = '';
   final _searchCtrl = TextEditingController();
+  late FavoritesService _favoritesService;
+  final MovieService _movieService = MovieService();
+  Set<int> _favoriteIds = {};
 
-  final MovieService _movieService = MovieService(); // use movie service
+  // infinite scroll fields
+  final ScrollController _scrollCtrl = ScrollController();
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int currentPage = 1;
 
   @override
   void initState() {
     super.initState();
     _favoritesService = FavoritesService();
-    _moviesFuture = fetchMovies();
     _searchCtrl.addListener(_onSearchChanged);
+    _moviesFuture = fetchMovies(); // loads page 1
     _loadFavorites();
+
+    _scrollCtrl.addListener(() {
+      if (!_isLoadingMore &&
+          _hasMore &&
+          _scrollCtrl.position.pixels >=
+              _scrollCtrl.position.maxScrollExtent - 300) {
+        // near the bottom -> load more
+        loadMore();
+      }
+    });
   }
 
   Future<void> _loadFavorites() async {
@@ -151,14 +151,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _applyFilter() {
-    if (_allMovies == null) {
-      _filtered = [];
-      return;
-    }
+    final source = _allMovies ?? [];
     if (_query.isEmpty) {
-      _filtered = List.from(_allMovies!);
+      _filtered = List.from(source);
     } else {
-      _filtered = _allMovies!
+      _filtered = source
           .where(
             (m) =>
                 m.title.toLowerCase().contains(_query) ||
@@ -173,13 +170,18 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _searchCtrl.removeListener(_onSearchChanged);
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _refresh() async {
+    // reset pagination and reload page 1
     setState(() {
-      _moviesFuture = fetchMovies();
+      _hasMore = true;
+      _isLoadingMore = false;
+      currentPage = 1;
       _allMovies = null;
+      _moviesFuture = fetchMovies();
     });
     final list = await _moviesFuture;
     if (mounted) {
@@ -190,20 +192,73 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // replaced direct HTTP call with MovieService.getPopularMovies()
+  // fetch page 1 (used on initial load / refresh)
   Future<List<Movie>> fetchMovies() async {
     try {
-      final raw = await _movieService
-          .getPopularMovies(); // List<dynamic> from TMDB
-      final movies = raw
+      final rawPage = await _movie_service_getPopular(currentPage);
+      final movies = rawPage
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
           .toList();
-
+      // set page for next load
+      currentPage = 2;
       _allMovies = movies;
       _applyFilter();
+      // if returned less than typical page size, mark hasMore false
+      if (rawPage.length < 20) _hasMore = false;
       return movies;
     } catch (e) {
       throw Exception('Failed to load movies from MovieService: $e');
+    }
+  }
+
+  // helper to call movie service correctly (returns List<dynamic>)
+  Future<List<dynamic>> _movie_service_getPopular(int page) {
+    return _movie_service_call(page);
+  }
+
+  Future<List<dynamic>> _movie_service_call(int page) async {
+    return await _movie_service_get(page);
+  }
+
+  // actual call to MovieService.getPopularMovies(page)
+  Future<List<dynamic>> _movie_service_get(int page) async {
+    return await _movieService.getPopularMovies(page);
+  }
+
+  // load next page and append to _allMovies
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final raw = await _movie_service_getPopular(currentPage);
+      final nextMovies = raw
+          .map((e) => Movie.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      if (nextMovies.isEmpty) {
+        _hasMore = false;
+      } else {
+        final list = List<Movie>.from(_allMovies ?? []);
+        list.addAll(nextMovies);
+        setState(() {
+          _allMovies = list;
+          _applyFilter();
+          currentPage++;
+        });
+        // if fewer than expected results, stop further loads (TMDB default page size 20)
+        if (nextMovies.length < 20) _hasMore = false;
+      }
+    } catch (e) {
+      debugPrint('Error loading more movies: $e');
+      // optionally show snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not load more movies: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -257,11 +312,14 @@ class _HomePageState extends State<HomePage> {
               child: FutureBuilder<List<Movie>>(
                 future: _moviesFuture,
                 builder: (context, snapshot) {
+                  // while initial load is happening, show loader
                   if (snapshot.connectionState == ConnectionState.waiting &&
-                      _allMovies == null) {
+                      (_allMovies == null || _allMovies!.isEmpty)) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasError && _allMovies == null) {
+
+                  if (snapshot.hasError &&
+                      (_allMovies == null || _allMovies!.isEmpty)) {
                     return ListView(
                       children: [
                         const SizedBox(height: 120),
@@ -286,11 +344,11 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
 
-                  final moviesToShow = (_allMovies == null || _query.isNotEmpty)
+                  // use filtered list if searching, otherwise allMovies
+                  final source = (_query.isNotEmpty)
                       ? _filtered
-                      : _allMovies!;
-
-                  if (moviesToShow.isEmpty) {
+                      : (_allMovies ?? []);
+                  if (source.isEmpty) {
                     return ListView(
                       children: const [
                         SizedBox(height: 120),
@@ -305,8 +363,9 @@ class _HomePageState extends State<HomePage> {
                   }
 
                   return GridView.builder(
+                    controller: _scrollCtrl,
                     padding: const EdgeInsets.all(16),
-                    itemCount: moviesToShow.length,
+                    itemCount: source.length + (_isLoadingMore ? 1 : 0),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
@@ -315,7 +374,12 @@ class _HomePageState extends State<HomePage> {
                           childAspectRatio: 0.65,
                         ),
                     itemBuilder: (context, index) {
-                      final movie = moviesToShow[index];
+                      // show loading indicator as last tile when loading more
+                      if (index >= source.length) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final movie = source[index];
                       final isFavorite = _favoriteIds.contains(movie.id);
 
                       return GestureDetector(
@@ -437,3 +501,4 @@ class _HomePageState extends State<HomePage> {
     };
   }
 }
+// ...existing code...
