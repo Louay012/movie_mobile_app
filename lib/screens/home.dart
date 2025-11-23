@@ -1,12 +1,9 @@
+// ...existing code...
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../services/favorites_service.dart';
+import '../services/movie_service.dart';
 import 'movie_details.dart';
-
-const String MOVIES_API_URL = 'https://www.api.andrespecht.dev/v1/movies';
 
 class Movie {
   final int id;
@@ -46,14 +43,27 @@ class Movie {
       poster = json['posterUrl'].toString();
     }
 
-    final description = json['description']?.toString();
+    final description =
+        json['description']?.toString() ?? json['overview']?.toString();
     final year = json['year'] is int
         ? json['year'] as int
-        : int.tryParse('${json['year']}');
-    final runningTime = json['runningTime']?.toString();
+        : (json['release_date'] != null &&
+                  json['release_date'].toString().length >= 4
+              ? int.tryParse(json['release_date'].toString().substring(0, 4))
+              : int.tryParse('${json['year']}'));
+    final runningTime =
+        json['runningTime']?.toString() ?? json['runtime']?.toString();
     final genre = (json['genre'] is List)
-        ? List<String>.from(json['genre'])
-        : null;
+        ? List<String>.from(json['genre'].map((e) => e.toString()))
+        : (json['genres'] is List
+              ? List<String>.from(
+                  (json['genres'] as List).map(
+                    (g) => g is Map && g['name'] != null
+                        ? g['name'].toString()
+                        : g.toString(),
+                  ),
+                )
+              : null);
     final slug = json['slug']?.toString();
 
     return Movie(
@@ -90,15 +100,32 @@ class _HomePageState extends State<HomePage> {
   String _query = '';
   final _searchCtrl = TextEditingController();
   late FavoritesService _favoritesService;
+  final MovieService _movieService = MovieService();
   Set<int> _favoriteIds = {};
+
+  // infinite scroll fields
+  final ScrollController _scrollCtrl = ScrollController();
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int currentPage = 1;
 
   @override
   void initState() {
     super.initState();
     _favoritesService = FavoritesService();
-    _moviesFuture = fetchMovies();
     _searchCtrl.addListener(_onSearchChanged);
+    _moviesFuture = fetchMovies(); // loads page 1
     _loadFavorites();
+
+    _scrollCtrl.addListener(() {
+      if (!_isLoadingMore &&
+          _hasMore &&
+          _scrollCtrl.position.pixels >=
+              _scrollCtrl.position.maxScrollExtent - 300) {
+        // near the bottom -> load more
+        loadMore();
+      }
+    });
   }
 
   Future<void> _loadFavorites() async {
@@ -124,14 +151,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _applyFilter() {
-    if (_allMovies == null) {
-      _filtered = [];
-      return;
-    }
+    final source = _allMovies ?? [];
     if (_query.isEmpty) {
-      _filtered = List.from(_allMovies!);
+      _filtered = List.from(source);
     } else {
-      _filtered = _allMovies!
+      _filtered = source
           .where(
             (m) =>
                 m.title.toLowerCase().contains(_query) ||
@@ -146,13 +170,18 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _searchCtrl.removeListener(_onSearchChanged);
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _refresh() async {
+    // reset pagination and reload page 1
     setState(() {
-      _moviesFuture = fetchMovies();
+      _hasMore = true;
+      _isLoadingMore = false;
+      currentPage = 1;
       _allMovies = null;
+      _moviesFuture = fetchMovies();
     });
     final list = await _moviesFuture;
     if (mounted) {
@@ -163,60 +192,73 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // fetch page 1 (used on initial load / refresh)
   Future<List<Movie>> fetchMovies() async {
-    final uri = Uri.parse(MOVIES_API_URL);
-    debugPrint('Requesting movies: $uri');
-
     try {
-      final res = await http
-          .get(uri, headers: {'Accept': 'application/json'})
-          .timeout(const Duration(seconds: 10));
-
-      debugPrint('Status: ${res.statusCode}');
-      debugPrint('Body: ${res.body}');
-
-      if (res.statusCode != 200) {
-        throw Exception(
-          'Failed to load movies: ${res.statusCode} — ${res.body}',
-        );
-      }
-
-      final body = json.decode(res.body);
-
-      List<dynamic> items;
-      if (body is Map<String, dynamic> && body['movies'] is List) {
-        items = body['movies'] as List<dynamic>;
-      } else if (body is List) {
-        items = body;
-      } else if (body is Map<String, dynamic> && body['response'] is List) {
-        items = body['response'] as List<dynamic>;
-      } else if (body is Map<String, dynamic> && body['results'] is List) {
-        items = body['results'] as List<dynamic>;
-      } else {
-        final firstList = body is Map<String, dynamic>
-            ? body.values.firstWhere((v) => v is List, orElse: () => null)
-            : null;
-        if (firstList is List) {
-          items = firstList;
-        } else {
-          throw Exception('Unexpected response shape from movies API');
-        }
-      }
-
-      final movies = items
+      final rawPage = await _movie_service_getPopular(currentPage);
+      final movies = rawPage
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
           .toList();
+      // set page for next load
+      currentPage = 2;
       _allMovies = movies;
       _applyFilter();
+      // if returned less than typical page size, mark hasMore false
+      if (rawPage.length < 20) _hasMore = false;
       return movies;
-    } on SocketException catch (e) {
-      throw Exception('Network error: $e');
-    } on TimeoutException catch (e) {
-      throw Exception('Request timed out: $e');
-    } on FormatException catch (e) {
-      throw Exception('Invalid JSON: $e');
     } catch (e) {
-      throw Exception('Fetch error: $e');
+      throw Exception('Failed to load movies from MovieService: $e');
+    }
+  }
+
+  // helper to call movie service correctly (returns List<dynamic>)
+  Future<List<dynamic>> _movie_service_getPopular(int page) {
+    return _movie_service_call(page);
+  }
+
+  Future<List<dynamic>> _movie_service_call(int page) async {
+    return await _movie_service_get(page);
+  }
+
+  // actual call to MovieService.getPopularMovies(page)
+  Future<List<dynamic>> _movie_service_get(int page) async {
+    return await _movieService.getPopularMovies(page);
+  }
+
+  // load next page and append to _allMovies
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final raw = await _movie_service_getPopular(currentPage);
+      final nextMovies = raw
+          .map((e) => Movie.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      if (nextMovies.isEmpty) {
+        _hasMore = false;
+      } else {
+        final list = List<Movie>.from(_allMovies ?? []);
+        list.addAll(nextMovies);
+        setState(() {
+          _allMovies = list;
+          _applyFilter();
+          currentPage++;
+        });
+        // if fewer than expected results, stop further loads (TMDB default page size 20)
+        if (nextMovies.length < 20) _hasMore = false;
+      }
+    } catch (e) {
+      debugPrint('Error loading more movies: $e');
+      // optionally show snackbar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not load more movies: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -246,6 +288,12 @@ class _HomePageState extends State<HomePage> {
             color: Colors.red,
             onPressed: () {
               Navigator.pushNamed(context, '/favorites');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
             },
           ),
         ],
@@ -283,11 +331,14 @@ class _HomePageState extends State<HomePage> {
               child: FutureBuilder<List<Movie>>(
                 future: _moviesFuture,
                 builder: (context, snapshot) {
+                  // while initial load is happening, show loader
                   if (snapshot.connectionState == ConnectionState.waiting &&
-                      _allMovies == null) {
+                      (_allMovies == null || _allMovies!.isEmpty)) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.hasError && _allMovies == null) {
+
+                  if (snapshot.hasError &&
+                      (_allMovies == null || _allMovies!.isEmpty)) {
                     return ListView(
                       children: [
                         const SizedBox(height: 120),
@@ -312,11 +363,11 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
 
-                  final moviesToShow = (_allMovies == null || _query.isNotEmpty)
+                  // use filtered list if searching, otherwise allMovies
+                  final source = (_query.isNotEmpty)
                       ? _filtered
-                      : _allMovies!;
-
-                  if (moviesToShow.isEmpty) {
+                      : (_allMovies ?? []);
+                  if (source.isEmpty) {
                     return ListView(
                       children: const [
                         SizedBox(height: 120),
@@ -331,16 +382,22 @@ class _HomePageState extends State<HomePage> {
                   }
 
                   return GridView.builder(
+                    controller: _scrollCtrl,
                     padding: const EdgeInsets.all(16),
-                    itemCount: moviesToShow.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: _getColumnCount(context),
-                      mainAxisSpacing: 20,
-                      crossAxisSpacing: 20,
-                      childAspectRatio: 0.6,
-                    ),
+                    itemCount: source.length + (_isLoadingMore ? 1 : 0),
+                    gridDelegate:
+                      SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: _getColumnCount(context),
+                        mainAxisSpacing: 20,
+                        crossAxisSpacing: 20,
+                        childAspectRatio: 0.6,
+                        ),
                     itemBuilder: (context, index) {
-                      final movie = moviesToShow[index];
+                      // show loading indicator as last tile when loading more
+                      if (index >= source.length) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final movie = source[index];
                       final isFavorite = _favoriteIds.contains(movie.id);
 
                       return GestureDetector(
@@ -501,3 +558,4 @@ class _HomePageState extends State<HomePage> {
     };
   }
 }
+// ...existing code...

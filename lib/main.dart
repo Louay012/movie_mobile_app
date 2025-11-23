@@ -6,6 +6,7 @@ import 'screens/signup.dart';
 import 'screens/login.dart';
 import 'screens/home.dart';
 import 'screens/favorites.dart';
+import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ class MovieApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomePage(),
         '/favorites': (context) => const FavoritesScreen(),
+        '/profile': (context) => const ProfileScreen()
       },
     );
   }
