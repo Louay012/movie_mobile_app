@@ -1,10 +1,10 @@
-// ...existing code...
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'movie_details.dart'; // new details page import
+import '../services/favorites_service.dart';
+import 'movie_details.dart';
 
 const String MOVIES_API_URL = 'https://www.api.andrespecht.dev/v1/movies';
 
@@ -89,12 +89,29 @@ class _HomePageState extends State<HomePage> {
   List<Movie> _filtered = [];
   String _query = '';
   final _searchCtrl = TextEditingController();
+  late FavoritesService _favoritesService;
+  Set<int> _favoriteIds = {};
 
   @override
   void initState() {
     super.initState();
+    _favoritesService = FavoritesService();
     _moviesFuture = fetchMovies();
     _searchCtrl.addListener(_onSearchChanged);
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _favoritesService.getFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteIds = favorites.map((m) => m['id'] as int).toSet();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading favorites: $e');
+    }
   }
 
   void _onSearchChanged() {
@@ -166,7 +183,6 @@ class _HomePageState extends State<HomePage> {
 
       final body = json.decode(res.body);
 
-      // API returns: {"success":true,"count":30,"movies":[...]}
       List<dynamic> items;
       if (body is Map<String, dynamic> && body['movies'] is List) {
         items = body['movies'] as List<dynamic>;
@@ -190,7 +206,6 @@ class _HomePageState extends State<HomePage> {
       final movies = items
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
           .toList();
-      // store locally for search
       _allMovies = movies;
       _applyFilter();
       return movies;
@@ -212,6 +227,15 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Film Explorer'),
         backgroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            color: Colors.red,
+            onPressed: () {
+              Navigator.pushNamed(context, '/favorites');
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -305,6 +329,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                     itemBuilder: (context, index) {
                       final movie = moviesToShow[index];
+                      final isFavorite = _favoriteIds.contains(movie.id);
+
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -313,7 +339,9 @@ class _HomePageState extends State<HomePage> {
                               builder: (context) =>
                                   MovieDetailsPage(movie: movie),
                             ),
-                          );
+                          ).then((_) {
+                            _loadFavorites();
+                          });
                         },
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -355,6 +383,46 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    try {
+                                      if (isFavorite) {
+                                        await _favoritesService
+                                            .removeFromFavorites(movie.id);
+                                      } else {
+                                        await _favoritesService.addToFavorites(
+                                          _convertMovieToMovieModel(movie),
+                                        );
+                                      }
+                                      _loadFavorites();
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(content: Text('Error: $e')),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    padding: const EdgeInsets.all(8),
+                                    child: Icon(
+                                      isFavorite
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: isFavorite
+                                          ? Colors.red
+                                          : Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -369,5 +437,15 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  dynamic _convertMovieToMovieModel(Movie movie) {
+    return {
+      'id': movie.id,
+      'title': movie.title,
+      'posterPath': movie.posterPath,
+      'overview': movie.description,
+      'releaseDate': movie.year?.toString() ?? '',
+      'voteAverage': 0.0,
+    };
+  }
 }
-// ...existing code...
