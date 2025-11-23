@@ -26,7 +26,23 @@ class UserModel {
       createdAt: (json['createdAt'] as dynamic)?.toDate() ?? DateTime.now(),
     );
   }
-
+  UserModel copyWith({
+    String? uid,
+    String? fullName,
+    int? age,
+    String? email,
+    String? photoURL,
+    DateTime? createdAt,
+  }) {
+    return UserModel(
+      uid: uid ?? this.uid,
+      fullName: fullName ?? this.fullName,
+      age: age ?? this.age,
+      email: email ?? this.email,
+      photoURL: photoURL ?? this.photoURL,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
   // Convert UserModel to Firestore document
   Map<String, dynamic> toJson() => {
     'uid': uid,
