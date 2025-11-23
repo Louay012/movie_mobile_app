@@ -220,6 +220,19 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  int _getColumnCount(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1400) {
+      return 5; // Large screens: 5 columns
+    } else if (screenWidth >= 900) {
+      return 4; // Medium-large screens: 4 columns
+    } else if (screenWidth >= 600) {
+      return 3; // Medium screens: 3 columns
+    } else {
+      return 2; // Small screens: 2 columns
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -320,13 +333,12 @@ class _HomePageState extends State<HomePage> {
                   return GridView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: moviesToShow.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.65,
-                        ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: _getColumnCount(context),
+                      mainAxisSpacing: 20,
+                      crossAxisSpacing: 20,
+                      childAspectRatio: 0.6,
+                    ),
                     itemBuilder: (context, index) {
                       final movie = moviesToShow[index];
                       final isFavorite = _favoriteIds.contains(movie.id);
@@ -343,87 +355,127 @@ class _HomePageState extends State<HomePage> {
                             _loadFavorites();
                           });
                         },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              movie.posterUrl.isNotEmpty
-                                  ? Hero(
-                                      tag: 'poster-${movie.id}',
-                                      child: Image.network(
-                                        movie.posterUrl,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder:
-                                            (context, child, progress) {
-                                              if (progress == null)
-                                                return child;
-                                              return const Center(
-                                                child:
-                                                    CircularProgressIndicator(),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  movie.posterUrl.isNotEmpty
+                                      ? Hero(
+                                          tag: 'poster-${movie.id}',
+                                          child: Image.network(
+                                            movie.posterUrl,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder:
+                                                (context, child, progress) {
+                                                  if (progress == null)
+                                                    return child;
+                                                  return const Center(
+                                                    child:
+                                                        CircularProgressIndicator(),
+                                                  );
+                                                },
+                                            errorBuilder: (context, _, __) {
+                                              return Container(
+                                                color: Colors.grey[800],
                                               );
                                             },
-                                        errorBuilder: (context, _, __) {
-                                          return Container(color: Colors.grey);
-                                        },
+                                          ),
+                                        )
+                                      : Container(color: Colors.grey[800]),
+                                  Align(
+                                    alignment: Alignment.bottomLeft,
+                                    child: Container(
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter,
+                                          colors: [
+                                            Colors.black.withOpacity(0.8),
+                                            Colors.transparent,
+                                          ],
+                                        ),
                                       ),
-                                    )
-                                  : Container(color: Colors.grey),
-                              Align(
-                                alignment: Alignment.bottomLeft,
-                                child: Container(
-                                  width: double.infinity,
-                                  color: Colors.black54,
-                                  padding: const EdgeInsets.all(8),
-                                  child: Text(
-                                    movie.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    try {
-                                      if (isFavorite) {
-                                        await _favoritesService
-                                            .removeFromFavorites(movie.id);
-                                      } else {
-                                        await _favoritesService.addToFavorites(
-                                          _convertMovieToMovieModel(movie),
-                                        );
-                                      }
-                                      _loadFavorites();
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(content: Text('Error: $e')),
-                                      );
-                                    }
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    padding: const EdgeInsets.all(8),
-                                    child: Icon(
-                                      isFavorite
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
-                                      color: isFavorite
-                                          ? Colors.red
-                                          : Colors.white,
-                                      size: 20,
+                                      padding: const EdgeInsets.all(12),
+                                      child: Text(
+                                        movie.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        try {
+                                          if (isFavorite) {
+                                            await _favoritesService
+                                                .removeFromFavorites(movie.id);
+                                          } else {
+                                            await _favoritesService
+                                                .addToFavorites(
+                                              _convertMovieToMovieModel(movie),
+                                            );
+                                          }
+                                          _loadFavorites();
+                                        } catch (e) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text('Error: $e'),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withOpacity(0.5),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        padding: const EdgeInsets.all(8),
+                                        child: Icon(
+                                          isFavorite
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color: isFavorite
+                                              ? Colors.red
+                                              : Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       );

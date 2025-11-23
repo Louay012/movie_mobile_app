@@ -5,6 +5,12 @@ class FavoritesService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  String _getPosterUrl(String? posterPath) {
+    if (posterPath == null || posterPath.isEmpty) return '';
+    if (posterPath.startsWith('http')) return posterPath;
+    return 'https://image.tmdb.org/t/p/w500$posterPath';
+  }
+
   // Add movie to favorites - accept dynamic movie data
   Future<void> addToFavorites(dynamic movie) async {
     try {
@@ -20,6 +26,7 @@ class FavoritesService {
         'movieId': movie['id'],
         'title': movie['title'],
         'posterPath': movie['posterPath'],
+        'poster': _getPosterUrl(movie['posterPath']),
         'description': movie['overview'],
         'rating': movie['voteAverage'] ?? 0.0,
         'addedAt': FieldValue.serverTimestamp(),
@@ -78,13 +85,20 @@ class FavoritesService {
           .get();
 
       return snapshot.docs
-          .map((doc) => {
-                'id': doc['movieId'],
-                'title': doc['title'],
-                'posterPath': doc['posterPath'],
-                'description': doc['description'],
-                'rating': doc['rating'],
-              })
+          .map((doc) {
+            final data = doc.data();
+            final posterUrl = data.containsKey('poster') && data['poster'] != null
+                ? data['poster']
+                : _getPosterUrl(data['posterPath']);
+            return {
+              'id': data['movieId'],
+              'title': data['title'],
+              'posterPath': data['posterPath'],
+              'poster': posterUrl,
+              'description': data['description'],
+              'rating': data['rating'],
+            };
+          })
           .toList();
     } catch (e) {
       throw Exception('Failed to fetch favorites: $e');
@@ -104,13 +118,20 @@ class FavoritesService {
         .orderBy('addedAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => {
-                  'id': doc['movieId'],
-                  'title': doc['title'],
-                  'posterPath': doc['posterPath'],
-                  'description': doc['description'],
-                  'rating': doc['rating'],
-                })
+            .map((doc) {
+              final data = doc.data();
+              final posterUrl = data.containsKey('poster') && data['poster'] != null
+                  ? data['poster']
+                  : _getPosterUrl(data['posterPath']);
+              return {
+                'id': data['movieId'],
+                'title': data['title'],
+                'posterPath': data['posterPath'],
+                'poster': posterUrl,
+                'description': data['description'],
+                'rating': data['rating'],
+              };
+            })
             .toList());
   }
 }
