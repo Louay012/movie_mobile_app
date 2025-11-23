@@ -277,6 +277,12 @@ class _HomePageState extends State<HomePage> {
               Navigator.pushNamed(context, '/favorites');
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
         ],
       ),
       body: Column(
