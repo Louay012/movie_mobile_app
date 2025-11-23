@@ -1,4 +1,3 @@
-// ...existing code...
 import 'dart:async';
 import 'package:flutter/material.dart';
 // removed direct http usage — using MovieService instead
@@ -123,8 +122,23 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _favoritesService = FavoritesService();
     _moviesFuture = fetchMovies();
     _searchCtrl.addListener(_onSearchChanged);
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _favoritesService.getFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteIds = favorites.map((m) => m['id'] as int).toSet();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading favorites: $e');
+    }
   }
 
   void _onSearchChanged() {
@@ -200,6 +214,15 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Film Explorer'),
         backgroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite),
+            color: Colors.red,
+            onPressed: () {
+              Navigator.pushNamed(context, '/favorites');
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -293,6 +316,8 @@ class _HomePageState extends State<HomePage> {
                         ),
                     itemBuilder: (context, index) {
                       final movie = moviesToShow[index];
+                      final isFavorite = _favoriteIds.contains(movie.id);
+
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -301,7 +326,9 @@ class _HomePageState extends State<HomePage> {
                               builder: (context) =>
                                   MovieDetailsPage(movie: movie),
                             ),
-                          );
+                          ).then((_) {
+                            _loadFavorites();
+                          });
                         },
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -343,6 +370,47 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 ),
                               ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    try {
+                                      if (isFavorite) {
+                                        await _favoritesService
+                                            .removeFromFavorites(movie.id);
+                                      } else {
+                                        await _favoritesService.addToFavorites(
+                                          _convertMovieToMovieModel(movie),
+                                        );
+                                      }
+                                      _loadFavorites();
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(content: Text('Error: $e')),
+                                      );
+                                    }
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    padding: const EdgeInsets.all(8),
+                                    child: Icon(
+                                      isFavorite
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: isFavorite
+                                          ? Colors.red
+                                          : Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -357,5 +425,15 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  dynamic _convertMovieToMovieModel(Movie movie) {
+    return {
+      'id': movie.id,
+      'title': movie.title,
+      'posterPath': movie.posterPath,
+      'overview': movie.description,
+      'releaseDate': movie.year?.toString() ?? '',
+      'voteAverage': 0.0,
+    };
+  }
 }
-// ...existing code...
