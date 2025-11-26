@@ -69,21 +69,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024, // Limit dimensions to reduce size
+        maxHeight: 1024,
+        imageQuality: 85, // Good quality but compressed
+      );
+      
       if (picked != null) {
+        // Get image bytes
+        Uint8List imageBytes;
         if (kIsWeb) {
-          // For web, read the bytes asynchronously
-          final bytes = await picked.readAsBytes();
-          setState(() {
-            _selectedImage = picked;
-            _webImageBytes = bytes;
-          });
+          imageBytes = await picked.readAsBytes();
         } else {
-          // For mobile, we can use the file directly
-          setState(() {
-            _selectedImage = picked;
-          });
+          imageBytes = await File(picked.path).readAsBytes();
         }
+
+        // Validate image size before showing
+        final imageInfo = await _storage.getImageInfo(imageBytes);
+        
+        if (imageInfo.containsKey('error')) {
+          _showError('Failed to read image: ${imageInfo['error']}');
+          return;
+        }
+
+        final sizeKB = imageInfo['sizeKB'] as int;
+        final isValid = imageInfo['isValid'] as bool;
+        final formattedSize = imageInfo['formattedSize'] as String;
+
+        print('Selected image: $formattedSize');
+
+        if (!isValid) {
+          // Show size warning but allow selection (will compress later)
+          final shouldContinue = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Large Image'),
+              content: Text(
+                'The selected image is $formattedSize. '
+                'We\'ll try to compress it to fit the ${StorageService.maxImageSizeKB}KB limit.\n\n'
+                'Continue?'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Compress & Use'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldContinue != true) return;
+        }
+
+        setState(() {
+          _selectedImage = picked;
+          _webImageBytes = imageBytes;
+        });
       }
     } catch (e) {
       _showError('Failed to pick image: $e');
@@ -101,17 +147,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Process new image if selected
       if (_selectedImage != null) {
         setState(() => _uploadingImage = true);
+        
         try {
-          if (kIsWeb) {
-            base64Image = await _storage.imageToBase64(_webImageBytes!);
-          } else {
-            final imageData = File(_selectedImage!.path);
-            base64Image = await _storage.imageToBase64(imageData);
+          final imageData = kIsWeb ? _webImageBytes! : File(_selectedImage!.path);
+          
+          // This will validate, compress if needed, and convert to base64
+          base64Image = await _storage.imageToBase64(imageData, autoCompress: true);
+          
+          if (base64Image == null) {
+            _showError('Failed to process image. Please try a different image.');
+            setState(() => _uploadingImage = false);
+            return;
           }
+
+          print('Image processed successfully');
+          
+        } on StorageServiceException catch (e) {
+          // Handle storage-specific errors with user-friendly messages
+          _showError(e.message);
+          setState(() {
+            _uploadingImage = false;
+            _loading = false;
+          });
+          return;
         } catch (e) {
-          _showError('Failed to process image: $e');
+          _showError('Failed to process image: ${e.toString()}');
+          setState(() {
+            _uploadingImage = false;
+            _loading = false;
+          });
+          return;
         } finally {
-          setState(() => _uploadingImage = false);
+          if (mounted) setState(() => _uploadingImage = false);
         }
       }
 
@@ -125,7 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
 
-      // Update Firestore using your existing method signature
+      // Update Firestore
       final updateData = {
         'fullName': _nameCtrl.text.trim(),
         'age': int.tryParse(_ageCtrl.text.trim()) ?? _currentUser!.age,
@@ -152,8 +219,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
 
       _showSuccess('Profile updated successfully');
+    } on DatabaseServiceException catch (e) {
+      // Handle database-specific errors
+      if (e.message.contains('longer than')) {
+        _showError(
+          'Image is too large for storage. Please choose a smaller image or lower quality photo.'
+        );
+      } else {
+        _showError(e.message);
+      }
     } catch (e) {
-      _showError('Update failed: $e');
+      _showError('Update failed: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -192,8 +268,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -201,8 +284,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(message),
+          ],
+        ),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -299,6 +389,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Profile Image
             _buildProfileImage(),
 
+            // Image size info when editing
+            if (_editing) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade900.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade700),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade300, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Max image size: ${StorageService.maxImageSizeKB}KB. Large images will be compressed automatically.',
+                        style: TextStyle(
+                          color: Colors.blue.shade100,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 32),
 
             // User Info Form
@@ -340,7 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   TextFormField(
                     controller: _emailCtrl,
-                    enabled: false, // Email shouldn't be editable
+                    enabled: false,
                     decoration: InputDecoration(
                       labelText: 'Email',
                       prefixIcon: const Icon(Icons.email),
@@ -375,15 +493,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.black,
-                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
                     ),
                   )
-                      : const Text(
-                    'Save Changes',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                      : const Text('Save Changes', style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -417,10 +530,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'User ID: ${_currentUser!.uid.substring(0, 8)}...',
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
                     ),
                   ],
                 ),

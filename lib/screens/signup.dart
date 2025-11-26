@@ -39,17 +39,70 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final picked =
-          await ImagePicker().pickImage(source: ImageSource.gallery);
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024, // Limit dimensions
+        maxHeight: 1024,
+        imageQuality: 85, // Good quality but compressed
+      );
+      
       if (picked != null) {
-        _selectedImage = picked;
+        // Get image bytes
+        Uint8List imageBytes;
         if (kIsWeb) {
-          _webImageBytes = await picked.readAsBytes();
+          imageBytes = await picked.readAsBytes();
+        } else {
+          imageBytes = await File(picked.path).readAsBytes();
         }
-        setState(() {});
+
+        // Validate image size
+        final imageInfo = await _storage.getImageInfo(imageBytes);
+        
+        if (imageInfo.containsKey('error')) {
+          _showError('Failed to read image: ${imageInfo['error']}');
+          return;
+        }
+
+        final sizeKB = imageInfo['sizeKB'] as int;
+        final isValid = imageInfo['isValid'] as bool;
+        final formattedSize = imageInfo['formattedSize'] as String;
+
+        print('Selected image: $formattedSize');
+
+        if (!isValid) {
+          // Show warning dialog
+          final shouldContinue = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Large Image'),
+              content: Text(
+                'The selected image is $formattedSize. '
+                'We\'ll try to compress it to fit the ${StorageService.maxImageSizeKB}KB limit.\n\n'
+                'Continue?'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Compress & Use'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldContinue != true) return;
+        }
+
+        setState(() {
+          _selectedImage = picked;
+          _webImageBytes = imageBytes;
+        });
       }
     } catch (e) {
-      _showError('Failed to pick image');
+      _showError('Failed to pick image: ${e.toString()}');
     }
   }
 
@@ -67,23 +120,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (!authResponse.success || authResponse.uid == null) {
         _showError(authResponse.message ?? AppMessages.errorOccurred);
+        setState(() => _loading = false);
         return;
       }
 
       final uid = authResponse.uid!;
 
-      // Step 2: Convert image to base64 instead of uploading
+      // Step 2: Convert image to base64 with validation
       String? base64Image;
       if (_selectedImage != null) {
         setState(() => _uploadingImage = true);
+        
         try {
           final imageData = kIsWeb ? _webImageBytes! : File(_selectedImage!.path);
-          base64Image = await _storage.imageToBase64(imageData);
+          
+          // This will validate, compress if needed, and convert to base64
+          base64Image = await _storage.imageToBase64(imageData, autoCompress: true);
+          
           if (base64Image == null) {
             _showError('Failed to process image, but account will be created.');
           }
+        } on StorageServiceException catch (e) {
+          _showError('Image processing: ${e.message}. Account will be created without photo.');
+          base64Image = null;
         } catch (e) {
-          _showError('Error processing image: $e');
+          _showError('Error processing image: ${e.toString()}');
+          base64Image = null;
         } finally {
           if (mounted) setState(() => _uploadingImage = false);
         }
@@ -112,6 +174,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final saved = await _database.createUser(userModel);
       if (!saved) {
         _showError('Failed to save user data');
+        setState(() => _loading = false);
         return;
       }
 
@@ -125,7 +188,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       });
     } catch (e) {
-      _showError('Signup failed: $e');
+      _showError('Signup failed: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -134,8 +197,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -143,8 +213,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(message),
+          ],
+        ),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -195,14 +272,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           radius: 55,
                           backgroundColor: Colors.black.withOpacity(0.5),
                           child: const CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         ),
                     ],
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              
+              // Image size info
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade900.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade300, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Optional • Max ${StorageService.maxImageSizeKB}KB',
+                      style: TextStyle(
+                        color: Colors.blue.shade100,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
               const SizedBox(height: 25),
 
               // Full Name
@@ -286,14 +387,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Sign Up',
-                          style: TextStyle(fontSize: 18),
-                        ),
+                      : const Text('Sign Up', style: TextStyle(fontSize: 18)),
                 ),
               ),
               const SizedBox(height: 15),
