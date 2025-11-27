@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -25,14 +24,16 @@ class StorageService {
     return (imageBytes.length / 1024).round();
   }
 
-  // Get formatted size string
+  // Get formatted size string - FIXED
   String getFormattedSize(int bytes) {
     if (bytes < 1024) {
       return '$bytes B';
     } else if (bytes < 1024 * 1024) {
-      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+      final kb = bytes / 1024;
+      return '${kb.toStringAsFixed(0)} KB'; // Changed from 1 decimal to 0
     } else {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+      final mb = bytes / (1024 * 1024);
+      return '${mb.toStringAsFixed(2)} MB';
     }
   }
 

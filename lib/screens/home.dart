@@ -349,6 +349,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Film Explorer'),
         backgroundColor: Colors.black,
         elevation: 0,
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),

@@ -1,9 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -28,7 +27,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  final _ageCtrl = TextEditingController();
+  final _birthDateCtrl = TextEditingController();
+  
+  DateTime? _selectedBirthDate;
 
   bool _obscure = true;
   bool _loading = false;
@@ -37,17 +38,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
   XFile? _selectedImage;
   Uint8List? _webImageBytes;
 
+  @override
+  void initState() {
+    super.initState();
+    _birthDateCtrl.addListener(_onDateInputChanged);
+  }
+
+  void _onDateInputChanged() {
+    final text = _birthDateCtrl.text;
+    final parsedDate = FormValidators.parseDateFromDDMMYYYY(text);
+    if (parsedDate != null && parsedDate != _selectedBirthDate) {
+      setState(() {
+        _selectedBirthDate = parsedDate;
+      });
+    }
+  }
+
+  Future<void> _selectBirthDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthDate ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'Select your birth date',
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _selectedBirthDate = picked;
+        _birthDateCtrl.text = DateFormat('dd/MM/yyyy').format(picked);
+      });
+    }
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
   Future<void> _pickImage() async {
     try {
       final picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024, // Limit dimensions
-        maxHeight: 1024,
-        imageQuality: 85, // Good quality but compressed
       );
       
       if (picked != null) {
-        // Get image bytes
         Uint8List imageBytes;
         if (kIsWeb) {
           imageBytes = await picked.readAsBytes();
@@ -55,7 +96,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           imageBytes = await File(picked.path).readAsBytes();
         }
 
-        // Validate image size
         final imageInfo = await _storage.getImageInfo(imageBytes);
         
         if (imageInfo.containsKey('error')) {
@@ -70,7 +110,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         print('Selected image: $formattedSize');
 
         if (!isValid) {
-          // Show warning dialog
           final shouldContinue = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
@@ -108,11 +147,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedBirthDate == null) {
+      _showError('Please Enter Your Birth Date');
+      return;
+    }
 
     setState(() => _loading = true);
 
     try {
-      // Step 1: Create user in Firebase Auth
       final authResponse = await _auth.signUpWithEmail(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
@@ -126,15 +169,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       final uid = authResponse.uid!;
 
-      // Step 2: Convert image to base64 with validation
       String? base64Image;
       if (_selectedImage != null) {
         setState(() => _uploadingImage = true);
         
         try {
           final imageData = kIsWeb ? _webImageBytes! : File(_selectedImage!.path);
-          
-          // This will validate, compress if needed, and convert to base64
           base64Image = await _storage.imageToBase64(imageData, autoCompress: true);
           
           if (base64Image == null) {
@@ -151,7 +191,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       }
 
-      // Step 3: Update Firebase Auth profile
       final user = _auth.currentUser;
       if (user != null) {
         await _auth.updateProfile(
@@ -161,11 +200,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       }
 
-      // Step 4: Save user to Firestore
       final userModel = UserModel(
         uid: uid,
         fullName: _nameCtrl.text.trim(),
-        age: int.parse(_ageCtrl.text.trim()),
+        birthDate: _selectedBirthDate!,
         email: _emailCtrl.text.trim(),
         photoURL: base64Image,
         createdAt: DateTime.now(),
@@ -228,17 +266,21 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   void dispose() {
+    _birthDateCtrl.removeListener(_onDateInputChanged);
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _nameCtrl.dispose();
-    _ageCtrl.dispose();
+    _birthDateCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(
+        title: const Text('Create Account'),
+        automaticallyImplyLeading: false,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -281,7 +323,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 8),
               
-              // Image size info
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
@@ -320,18 +361,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Age
               TextFormField(
-                controller: _ageCtrl,
-                keyboardType: TextInputType.number,
+                controller: _birthDateCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Age',
+                  labelText: 'Birth Date',
                   prefixIcon: const Icon(Icons.cake),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: _selectBirthDate,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  hintText: 'dd/mm/yyyy',
+                  helperText: _selectedBirthDate != null 
+                      ? 'Age: ${_calculateAge(_selectedBirthDate!)} years old'
+                      : null,
                 ),
-                validator: FormValidators.validateAge,
+                keyboardType: TextInputType.datetime,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please Enter Your Birth Date';
+                  }
+                  final parsedDate = FormValidators.parseDateFromDDMMYYYY(value);
+                  if (parsedDate == null) {
+                    return 'Invalid Date Format';
+                  }
+                  final age = _calculateAge(parsedDate);
+                  if (age < 13) {
+                    return 'You Must Be At Least 13 Years Old';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
