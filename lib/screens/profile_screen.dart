@@ -18,7 +18,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _auth = AuthService();
   final _database = DatabaseService();
@@ -40,10 +41,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isEditing = false;
 
   UserModel? _currentUser;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
     _loadUserData();
     _birthDateCtrl.addListener(_onDateInputChanged);
   }
@@ -74,6 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _emailCtrl.text = userData.email;
             _currentBase64Image = userData.photoURL;
           });
+          _animationController.forward();
         }
       }
     } catch (e) {
@@ -93,6 +100,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       lastDate: DateTime.now(),
       helpText: 'Select your birth date',
       initialEntryMode: DatePickerEntryMode.calendarOnly,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: Colors.deepPurpleAccent,
+              onPrimary: Colors.white,
+              surface: const Color(0xFF302B63),
+              onSurface: Colors.white,
+            ),
+            dialogBackgroundColor: const Color(0xFF24243E),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null && picked != _selectedBirthDate) {
@@ -139,19 +160,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final shouldContinue = await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('Large Image'),
+              backgroundColor: const Color(0xFF302B63),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: const Text(
+                'Large Image',
+                style: TextStyle(color: Colors.white),
+              ),
               content: Text(
                 'The selected image is $formattedSize. '
                 'We\'ll try to compress it to fit the ${StorageService.maxImageSizeKB}KB limit.\n\n'
                 'Continue?',
+                style: TextStyle(color: Colors.white.withOpacity(0.8)),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey.shade400),
+                  ),
                 ),
-                TextButton(
+                ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurpleAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   child: const Text('Compress & Use'),
                 ),
               ],
@@ -277,13 +315,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _signOut() async {
-    try {
-      await _auth.signOut();
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF302B63),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Are you sure you want to sign out?',
+          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey.shade400),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _auth.signOut();
+        if (mounted) {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/login',
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        _showError('Failed to sign out: $e');
       }
-    } catch (e) {
-      _showError('Failed to sign out: $e');
     }
   }
 
@@ -298,7 +374,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(child: Text(message)),
           ],
         ),
-        backgroundColor: Colors.red,
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         duration: const Duration(seconds: 4),
       ),
     );
@@ -315,7 +393,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Text(message),
           ],
         ),
-        backgroundColor: Colors.green,
+        backgroundColor: Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -340,69 +420,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [Colors.amber.shade600, Colors.orange.shade800],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withOpacity(0.3),
-            blurRadius: 15,
-            spreadRadius: 2,
+            color: Colors.deepPurpleAccent.withOpacity(0.5),
+            blurRadius: 20,
+            spreadRadius: 5,
           ),
         ],
       ),
-      padding: const EdgeInsets.all(4),
-      child: Stack(
-        children: [
-          CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.grey.shade800,
-            backgroundImage: imageProvider,
-            child: imageProvider == null
-                ? Icon(Icons.person, size: 50, color: Colors.grey.shade400)
-                : null,
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [Colors.deepPurpleAccent, Colors.purple.shade700],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          if (_isEditing)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: _uploadingImage ? null : _pickImage,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade600,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.black, width: 2),
-                  ),
-                  child: _uploadingImage
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black,
-                            ),
-                          ),
-                        )
-                      : const Icon(
-                          Icons.camera_alt,
-                          color: Colors.black,
-                          size: 20,
+          border: Border.all(color: Colors.white, width: 4),
+        ),
+        padding: const EdgeInsets.all(4),
+        child: Stack(
+          children: [
+            CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.grey.shade800,
+              backgroundImage: imageProvider,
+              child: imageProvider == null
+                  ? Icon(
+                      Icons.person,
+                      size: 60,
+                      color: Colors.white.withOpacity(0.7),
+                    )
+                  : null,
+            ),
+            if (_isEditing)
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: GestureDetector(
+                  onTap: _uploadingImage ? null : _pickImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.deepPurpleAccent,
+                          Colors.purple.shade600,
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepPurpleAccent.withOpacity(0.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
                         ),
+                      ],
+                    ),
+                    child: _uploadingImage
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   @override
   void dispose() {
+    _animationController.dispose();
     _birthDateCtrl.removeListener(_onDateInputChanged);
     _nameCtrl.dispose();
     _birthDateCtrl.dispose();
@@ -414,350 +517,458 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text('Profile'),
-          backgroundColor: Colors.black,
+          title: const Text(
+            'Profile',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF0F0C29),
+                const Color(0xFF302B63),
+                const Color(0xFF24243E),
+              ],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(color: Colors.deepPurpleAccent),
+          ),
+        ),
       );
     }
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: Colors.black,
+        title: const Text(
+          'Profile',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        centerTitle: true,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.black.withOpacity(0.8), Colors.transparent],
+            ),
+          ),
+        ),
         actions: [
           if (!_isEditing)
             IconButton(
-              icon: const Icon(Icons.edit),
+              icon: const Icon(Icons.edit_outlined),
               onPressed: () => setState(() => _isEditing = true),
               tooltip: 'Edit Profile',
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-
-              _buildProfileImage(),
-
-              const SizedBox(height: 16),
-
-              if (!_isEditing && _currentUser != null) ...[
-                Text(
-                  _currentUser!.fullName,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF0F0C29),
+              const Color(0xFF302B63),
+              const Color(0xFF24243E),
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(20),
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 600),
+              tween: Tween(begin: 0.0, end: 1.0),
+              builder: (context, value, child) {
+                return Opacity(
+                  opacity: value,
+                  child: Transform.translate(
+                    offset: Offset(0, 30 * (1 - value)),
+                    child: child,
                   ),
-                ),
-                const SizedBox(height: 4),
-                if (_selectedBirthDate != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade700.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_calculateAge(_selectedBirthDate!)} years old',
-                      style: TextStyle(
-                        color: Colors.amber.shade400,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Text(
-                  _currentUser!.email,
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
-                ),
-                const SizedBox(height: 30),
-
-                // Account Info Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade900,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade800),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Account Information',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber.shade400,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      _buildInfoRow(
-                        Icons.person_outline,
-                        'Full Name',
-                        _currentUser!.fullName,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildInfoRow(
-                        Icons.email_outlined,
-                        'Email',
-                        _currentUser!.email,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildInfoRow(
-                        Icons.cake_outlined,
-                        'Birth Date',
-                        DateFormat('dd/MM/yyyy').format(_selectedBirthDate!),
-                      ),
-                      const SizedBox(height: 16),
-                      _buildInfoRow(
-                        Icons.calendar_today_outlined,
-                        'Member Since',
-                        DateFormat(
-                          'MMM dd, yyyy',
-                        ).format(_currentUser!.createdAt!),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: _signOut,
-                    icon: const Icon(Icons.logout, color: Colors.red),
-                    label: const Text(
-                      'Sign Out',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      side: const BorderSide(color: Colors.red),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-
-              if (_isEditing) ...[
-                const SizedBox(height: 30),
-
-                TextFormField(
-                  controller: _nameCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Full Name',
-                    labelStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(
-                      Icons.person_outline,
-                      color: Colors.amber.shade600,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade700),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade700),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.amber.shade600,
-                        width: 2,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade900,
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please Enter Your Name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _birthDateCtrl,
-                  decoration: InputDecoration(
-                    labelText: 'Birth Date',
-                    labelStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(
-                      Icons.cake_outlined,
-                      color: Colors.amber.shade600,
-                    ),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        Icons.calendar_today,
-                        color: Colors.grey.shade500,
-                      ),
-                      onPressed: _selectBirthDate,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade700),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade700),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: Colors.amber.shade600,
-                        width: 2,
-                      ),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade900,
-                    hintText: 'dd/mm/yyyy',
-                    hintStyle: TextStyle(color: Colors.grey.shade600),
-                    helperText: _selectedBirthDate != null
-                        ? 'Age: ${_calculateAge(_selectedBirthDate!)} years old'
-                        : null,
-                    helperStyle: TextStyle(color: Colors.amber.shade400),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                  keyboardType: TextInputType.datetime,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please Enter Your Birth Date';
-                    }
-                    final parsedDate = FormValidators.parseDateFromDDMMYYYY(
-                      value,
-                    );
-                    if (parsedDate == null) {
-                      return 'Invalid Date Format';
-                    }
-                    final age = _calculateAge(parsedDate);
-                    if (age < 13) {
-                      return 'You Must Be At Least 13 Years Old';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _emailCtrl,
-                  enabled: false,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: TextStyle(color: Colors.grey.shade400),
-                    prefixIcon: Icon(
-                      Icons.email_outlined,
-                      color: Colors.grey.shade600,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade700),
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade800),
-                    ),
-                    filled: true,
-                    fillColor: Colors.grey.shade900.withOpacity(0.5),
-                    helperText: 'Email cannot be changed',
-                    helperStyle: TextStyle(color: Colors.grey.shade600),
-                  ),
-                  style: TextStyle(color: Colors.grey.shade500),
-                ),
-                const SizedBox(height: 30),
-
-                Row(
+                );
+              },
+              child: Form(
+                key: _formKey,
+                child: Column(
                   children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _updating
-                            ? null
-                            : () {
-                                setState(() {
-                                  _isEditing = false;
-                                  _selectedImage = null;
-                                  _webImageBytes = null;
-                                  if (_currentUser != null) {
-                                    _nameCtrl.text = _currentUser!.fullName;
-                                    _selectedBirthDate =
-                                        _currentUser!.birthDate;
-                                    _birthDateCtrl.text = DateFormat(
-                                      'dd/MM/yyyy',
-                                    ).format(_currentUser!.birthDate);
-                                  }
-                                });
-                              },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          side: BorderSide(color: Colors.grey.shade600),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 16,
-                          ),
+                    const SizedBox(height: 20),
+                    _buildProfileImage(),
+                    const SizedBox(height: 20),
+
+                    if (!_isEditing && _currentUser != null) ...[
+                      Text(
+                        _currentUser!.fullName,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: (_updating || _uploadingImage)
-                            ? null
-                            : _updateProfile,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          backgroundColor: Colors.amber.shade600,
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 8),
+                      if (_selectedBirthDate != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
                           ),
-                        ),
-                        child: _updating
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.black,
-                                  ),
-                                ),
-                              )
-                            : const Text(
-                                'Save Changes',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.deepPurpleAccent.withOpacity(0.3),
+                                Colors.purple.withOpacity(0.2),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.deepPurpleAccent.withOpacity(0.4),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.cake,
+                                color: Colors.deepPurpleAccent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${_calculateAge(_selectedBirthDate!)} years old',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 15,
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+
+                      const SizedBox(height: 30),
+
+                      // Account Info Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withOpacity(0.15),
+                              Colors.white.withOpacity(0.05),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.deepPurpleAccent.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.deepPurpleAccent.withOpacity(0.2),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.deepPurpleAccent,
+                                        Colors.purple.shade600,
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Account Information',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            _buildInfoRow(
+                              Icons.person_outline,
+                              'Full Name',
+                              _currentUser!.fullName,
+                            ),
+                            const SizedBox(height: 18),
+                            _buildInfoRow(
+                              Icons.email_outlined,
+                              'Email',
+                              _currentUser!.email,
+                            ),
+                            const SizedBox(height: 18),
+                            _buildInfoRow(
+                              Icons.cake_outlined,
+                              'Birth Date',
+                              DateFormat(
+                                'dd/MM/yyyy',
+                              ).format(_selectedBirthDate!),
+                            ),
+                            const SizedBox(height: 18),
+                            _buildInfoRow(
+                              Icons.calendar_today_outlined,
+                              'Member Since',
+                              DateFormat(
+                                'MMM dd, yyyy',
+                              ).format(_currentUser!.createdAt!),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+
+                      const SizedBox(height: 24),
+
+                      // Sign Out Button
+                      Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.red.shade700, Colors.red.shade900],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: ElevatedButton.icon(
+                          onPressed: _signOut,
+                          icon: const Icon(Icons.logout, size: 22),
+                          label: const Text(
+                            'Sign Out',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    if (_isEditing) ...[
+                      const SizedBox(height: 30),
+
+                      // Edit Form Fields
+                      _buildEditField(
+                        controller: _nameCtrl,
+                        label: 'Full Name',
+                        icon: Icons.person_outline,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please Enter Your Name';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildEditField(
+                        controller: _birthDateCtrl,
+                        label: 'Birth Date',
+                        icon: Icons.cake_outlined,
+                        hintText: 'dd/mm/yyyy',
+                        readOnly: false,
+                        keyboardType: TextInputType.datetime,
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.calendar_today,
+                            color: Colors.deepPurpleAccent,
+                          ),
+                          onPressed: _selectBirthDate,
+                        ),
+                        helperText: _selectedBirthDate != null
+                            ? 'Age: ${_calculateAge(_selectedBirthDate!)} years old'
+                            : null,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please Enter Your Birth Date';
+                          }
+                          final parsedDate =
+                              FormValidators.parseDateFromDDMMYYYY(value);
+                          if (parsedDate == null) {
+                            return 'Invalid Date Format';
+                          }
+                          final age = _calculateAge(parsedDate);
+                          if (age < 13) {
+                            return 'You Must Be At Least 13 Years Old';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      _buildEditField(
+                        controller: _emailCtrl,
+                        label: 'Email',
+                        icon: Icons.email_outlined,
+                        enabled: false,
+                        helperText: 'Email cannot be changed',
+                      ),
+                      const SizedBox(height: 30),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: OutlinedButton(
+                                onPressed: _updating
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          _isEditing = false;
+                                          _selectedImage = null;
+                                          _webImageBytes = null;
+                                          if (_currentUser != null) {
+                                            _nameCtrl.text =
+                                                _currentUser!.fullName;
+                                            _selectedBirthDate =
+                                                _currentUser!.birthDate;
+                                            _birthDateCtrl.text = DateFormat(
+                                              'dd/MM/yyyy',
+                                            ).format(_currentUser!.birthDate);
+                                          }
+                                        });
+                                      },
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  side: BorderSide.none,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.deepPurpleAccent,
+                                    Colors.purple.shade700,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.deepPurpleAccent.withOpacity(
+                                      0.4,
+                                    ),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: (_updating || _uploadingImage)
+                                    ? null
+                                    : _updateProfile,
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: _updating
+                                    ? const SizedBox(
+                                        height: 22,
+                                        width: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Save Changes',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
-              ],
-            ],
+              ),
+            ),
           ),
         ),
       ),
@@ -765,27 +976,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.amber.shade600, size: 22),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.deepPurpleAccent.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.deepPurpleAccent, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    String? hintText,
+    String? helperText,
+    bool enabled = true,
+    bool readOnly = false,
+    TextInputType? keyboardType,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.deepPurpleAccent.withOpacity(0.3)),
+      ),
+      child: TextFormField(
+        controller: controller,
+        enabled: enabled,
+        readOnly: readOnly,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+          helperText: helperText,
+          helperStyle: const TextStyle(color: Colors.deepPurpleAccent),
+          prefixIcon: Icon(icon, color: Colors.deepPurpleAccent),
+          suffixIcon: suffixIcon,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.transparent,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
           ),
         ),
-      ],
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+        validator: validator,
+      ),
     );
   }
 }
