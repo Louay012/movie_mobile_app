@@ -29,9 +29,7 @@ class MatchingService {
         .collection('favorites')
         .get();
 
-    return snapshot.docs
-        .map((doc) => doc.data()['movieId'] as int)
-        .toSet();
+    return snapshot.docs.map((doc) => doc.data()['movieId'] as int).toSet();
   }
 
   // Get a user's favorites
@@ -53,7 +51,7 @@ class MatchingService {
     }).toList();
   }
 
-  // Find users with matching preferences (>= 75% match)
+  // Find users with matching preferences (>= 75% match) - SYMMETRIC VERSION
   Future<List<MatchedUser>> findMatchingUsers() async {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null) return [];
@@ -64,7 +62,7 @@ class MatchingService {
 
     // Get all users
     final usersSnapshot = await _firestore.collection('users').get();
-    
+
     List<MatchedUser> matchedUsers = [];
 
     for (final userDoc in usersSnapshot.docs) {
@@ -73,33 +71,36 @@ class MatchingService {
 
       // Get this user's favorites
       final userFavorites = await _getUserFavorites(userDoc.id);
-      final userFavoriteIds = userFavorites
-          .map((m) => m['id'] as int)
-          .toSet();
+      final userFavoriteIds = userFavorites.map((m) => m['id'] as int).toSet();
 
       if (userFavoriteIds.isEmpty) continue;
 
-      // Calculate match percentage
+      // Calculate match percentage (SYMMETRIC: based on union of both users' favorites)
       final commonMovieIds = currentUserFavorites.intersection(userFavoriteIds);
-      
-      // Match is based on how many of current user's favorites are shared
-      final matchPercentage = (commonMovieIds.length / currentUserFavorites.length) * 100;
+      final totalUniqueMovies = currentUserFavorites
+          .union(userFavoriteIds)
+          .length;
+
+      // Jaccard similarity: intersection / union
+      final matchPercentage = (commonMovieIds.length / totalUniqueMovies) * 100;
 
       // Only include users with >= 75% match
       if (matchPercentage >= 75) {
         final userData = userDoc.data();
         final user = UserModel.fromJson(userData, userDoc.id);
-        
+
         // Get common movies details
         final commonMovies = userFavorites
             .where((m) => commonMovieIds.contains(m['id']))
             .toList();
 
-        matchedUsers.add(MatchedUser(
-          user: user,
-          matchPercentage: matchPercentage,
-          commonMovies: commonMovies,
-        ));
+        matchedUsers.add(
+          MatchedUser(
+            user: user,
+            matchPercentage: matchPercentage,
+            commonMovies: commonMovies,
+          ),
+        );
       }
     }
 
