@@ -68,7 +68,12 @@ class _LoadingScreenState extends State<LoadingScreen>
                     color: Colors.black.withOpacity(0.4),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.amber.withOpacity(0.3),
+                        color: const Color.fromARGB(
+                          255,
+                          190,
+                          26,
+                          235,
+                        ).withOpacity(0.3),
                         blurRadius: 30,
                         spreadRadius: 10,
                       ),
@@ -77,7 +82,7 @@ class _LoadingScreenState extends State<LoadingScreen>
                   child: Icon(
                     Icons.movie_filter,
                     size: 80,
-                    color: Colors.amber.shade600,
+                    color: const Color.fromARGB(255, 210, 31, 233),
                   ),
                 ),
 
@@ -93,7 +98,12 @@ class _LoadingScreenState extends State<LoadingScreen>
                     letterSpacing: 2,
                     shadows: [
                       Shadow(
-                        color: Colors.amber.withOpacity(0.6),
+                        color: const Color.fromARGB(
+                          255,
+                          163,
+                          24,
+                          222,
+                        ).withOpacity(0.6),
                         blurRadius: 15,
                         offset: const Offset(0, 0),
                       ),

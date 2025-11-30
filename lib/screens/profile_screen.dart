@@ -172,7 +172,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color.fromARGB(255, 199, 31, 233),
+            ),
             child: const Text('Sign Out'),
           ),
         ],
@@ -191,24 +193,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
   Widget _buildProfileImage() {
-    final hasImage = _currentBase64Image != null && _currentBase64Image!.isNotEmpty;
+    final hasImage =
+        _currentBase64Image != null && _currentBase64Image!.isNotEmpty;
     final hasNewImage = _selectedImage != null;
 
     return Stack(
@@ -218,11 +215,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           backgroundColor: Colors.grey.shade800,
           backgroundImage: hasNewImage
               ? (kIsWeb
-              ? MemoryImage(_webImageBytes!)
-              : FileImage(File(_selectedImage!.path)) as ImageProvider)
+                    ? MemoryImage(_webImageBytes!)
+                    : FileImage(File(_selectedImage!.path)) as ImageProvider)
               : (hasImage
-              ? MemoryImage(base64Decode(_currentBase64Image!))
-              : null),
+                    ? MemoryImage(base64Decode(_currentBase64Image!))
+                    : null),
           child: !hasImage && !hasNewImage
               ? const Icon(Icons.person, size: 50, color: Colors.white54)
               : null,
@@ -233,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             right: 0,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.amber.shade600,
+                color: const Color.fromARGB(255, 152, 3, 193),
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -291,159 +288,161 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _loading && _currentUser == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-
-            // Profile Image
-            _buildProfileImage(),
-
-            const SizedBox(height: 32),
-
-            // User Info Form
-            Form(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  TextFormField(
-                    controller: _nameCtrl,
-                    enabled: _editing,
-                    decoration: InputDecoration(
-                      labelText: 'Full Name',
-                      prefixIcon: const Icon(Icons.person),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      filled: !_editing,
-                      fillColor: Colors.grey.shade900,
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
 
-                  TextFormField(
-                    controller: _ageCtrl,
-                    enabled: _editing,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Age',
-                      prefixIcon: const Icon(Icons.cake),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      filled: !_editing,
-                      fillColor: Colors.grey.shade900,
-                    ),
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
+                  // Profile Image
+                  _buildProfileImage(),
 
-                  TextFormField(
-                    controller: _emailCtrl,
-                    enabled: false, // Email shouldn't be editable
-                    decoration: InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade900,
+                  const SizedBox(height: 32),
+
+                  // User Info Form
+                  Form(
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: _nameCtrl,
+                          enabled: _editing,
+                          decoration: InputDecoration(
+                            labelText: 'Full Name',
+                            prefixIcon: const Icon(Icons.person),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            filled: !_editing,
+                            fillColor: Colors.grey.shade900,
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: _ageCtrl,
+                          enabled: _editing,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Age',
+                            prefixIcon: const Icon(Icons.cake),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            filled: !_editing,
+                            fillColor: Colors.grey.shade900,
+                          ),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        const SizedBox(height: 16),
+
+                        TextFormField(
+                          controller: _emailCtrl,
+                          enabled: false, // Email shouldn't be editable
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: const Icon(Icons.email),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade900,
+                          ),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ],
                     ),
-                    style: const TextStyle(color: Colors.white70),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Action Buttons
+                  if (_editing) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _loading ? null : _updateProfile,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          backgroundColor: Colors.amber.shade600,
+                          foregroundColor: Colors.black,
+                        ),
+                        child: _loading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.black,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'Save Changes',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Account Stats
+                  if (!_editing && _currentUser != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade900,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Account Info',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: const Color.fromARGB(255, 198, 23, 238),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Member since: ${_currentUser!.createdAt != null ? _formatDate(_currentUser!.createdAt!) : 'N/A'}',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'User ID: ${_currentUser!.uid.substring(0, 8)}...',
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Sign Out Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: _signOut,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        side: BorderSide(
+                          color: const Color.fromARGB(255, 231, 105, 102),
+                        ),
+                        foregroundColor: Colors.red.shade400,
+                      ),
+                      child: const Text('Sign Out'),
+                    ),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // Action Buttons
-            if (_editing) ...[
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _updateProfile,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    backgroundColor: Colors.amber.shade600,
-                    foregroundColor: Colors.black,
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.black,
-                      ),
-                    ),
-                  )
-                      : const Text(
-                    'Save Changes',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Account Stats
-            if (!_editing && _currentUser != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade900,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Account Info',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.amber.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Member since: ${_currentUser!.createdAt != null ? _formatDate(_currentUser!.createdAt!) : 'N/A'}',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'User ID: ${_currentUser!.uid.substring(0, 8)}...',
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Sign Out Button
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _signOut,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  side: BorderSide(color: Colors.red.shade400),
-                  foregroundColor: Colors.red.shade400,
-                ),
-                child: const Text('Sign Out'),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart'; // <-- add this line
 
 class MovieService {
   final String apiKey = "90eac833e9ddd5d6ddcf1ed1ca6044fc";
@@ -13,6 +14,8 @@ class MovieService {
 
     if (res.statusCode == 200) {
       final data = jsonDecode(res.body);
+      debugPrint('first result: ${jsonEncode(data["results"][0])}');
+
       return data["results"];
     } else {
       throw Exception("Failed to load movies");
