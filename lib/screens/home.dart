@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/favorites_service.dart';
 import '../services/movie_service.dart';
 import 'movie_details.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Movie {
   final int id;
@@ -13,6 +14,7 @@ class Movie {
   final String? runningTime;
   final List<String>? genre;
   final String? slug;
+  final double? rating;
 
   Movie({
     required this.id,
@@ -23,6 +25,7 @@ class Movie {
     this.runningTime,
     this.genre,
     this.slug,
+    this.rating,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -64,6 +67,12 @@ class Movie {
                 )
               : null);
     final slug = json['slug']?.toString();
+    
+    final rating = json['vote_average'] != null 
+        ? (json['vote_average'] is double 
+            ? json['vote_average'] 
+            : double.tryParse(json['vote_average'].toString()))
+        : null;
 
     return Movie(
       id: id,
@@ -74,6 +83,7 @@ class Movie {
       runningTime: runningTime,
       genre: genre,
       slug: slug,
+      rating: rating,
     );
   }
 
@@ -329,16 +339,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   int _getColumnCount(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    if (screenWidth >= 1400) {
-      return 5;
-    } else if (screenWidth >= 900) {
-      return 4;
-    } else if (screenWidth >= 600) {
-      return 3;
-    } else {
-      return 2;
-    }
+    final width = MediaQuery.of(context).size.width;
+    if (width >= 1400) return 6;
+    if (width >= 1100) return 5;
+    if (width >= 800) return 4;
+    if (width >= 500) return 3;
+    return 2;
   }
 
   @override
@@ -519,7 +525,7 @@ class _HomePageState extends State<HomePage> {
                       crossAxisCount: _getColumnCount(context),
                       mainAxisSpacing: 20,
                       crossAxisSpacing: 20,
-                      childAspectRatio: 0.6,
+                      childAspectRatio: 0.55,
                     ),
                     itemBuilder: (context, index) {
                       // Show loading indicator as last tile when loading more
@@ -535,7 +541,9 @@ class _HomePageState extends State<HomePage> {
                       final movie = source[index];
                       final isFavorite = _favoriteIds.contains(movie.id);
 
-                      return GestureDetector(
+                      return MovieCard(
+                        movie: movie,
+                        isFavorite: isFavorite,
                         onTap: () {
                           Navigator.push(
                             context,
@@ -547,150 +555,27 @@ class _HomePageState extends State<HomePage> {
                             _loadFavorites();
                           });
                         },
-                        child: Material(
-                          color: Colors.transparent,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  movie.posterUrl.isNotEmpty
-                                      ? Hero(
-                                          tag: 'poster-${movie.id}',
-                                          child: Image.network(
-                                            movie.posterUrl,
-                                            fit: BoxFit.cover,
-                                            loadingBuilder:
-                                                (context, child, progress) {
-                                              if (progress == null)
-                                                return child;
-                                              return Container(
-                                                color: Colors.grey[800],
-                                                child: const Center(
-                                                  child: CircularProgressIndicator(
-                                                    strokeWidth: 2,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                            errorBuilder: (context, error, stackTrace) {
-                                              debugPrint('Image load error: $error');
-                                              return Container(
-                                                color: Colors.grey[800],
-                                                child: const Center(
-                                                  child: Icon(
-                                                    Icons.broken_image,
-                                                    color: Colors.white30,
-                                                    size: 40,
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        )
-                                      : Container(
-                                          color: Colors.grey[800],
-                                          child: const Center(
-                                            child: Icon(
-                                              Icons.movie,
-                                              color: Colors.white30,
-                                              size: 40,
-                                            ),
-                                          ),
-                                        ),
-                                  Align(
-                                    alignment: Alignment.bottomLeft,
-                                    child: Container(
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.bottomCenter,
-                                          end: Alignment.topCenter,
-                                          colors: [
-                                            Colors.black.withOpacity(0.8),
-                                            Colors.transparent,
-                                          ],
-                                        ),
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      child: Text(
-                                        movie.title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: GestureDetector(
-                                      onTap: () async {
-                                        try {
-                                          if (isFavorite) {
-                                            await _favoritesService
-                                                .removeFromFavorites(movie.id);
-                                            _showSuccessSnackBar('Removed from favorites');
-                                          } else {
-                                            await _favoritesService
-                                                .addToFavorites(
-                                              _convertMovieToMovieModel(movie),
-                                            );
-                                            _showSuccessSnackBar('Added to favorites');
-                                          }
-                                          _loadFavorites();
-                                        } catch (e) {
-                                          debugPrint('Favorite toggle error: $e');
-                                          _showErrorSnackBar(
-                                            'Failed to update favorites. Please try again.'
-                                          );
-                                        }
-                                      },
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black54,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black
-                                                  .withOpacity(0.5),
-                                              blurRadius: 4,
-                                            ),
-                                          ],
-                                        ),
-                                        padding: const EdgeInsets.all(8),
-                                        child: Icon(
-                                          isFavorite
-                                              ? Icons.favorite
-                                              : Icons.favorite_border,
-                                          color: isFavorite
-                                              ? Colors.red
-                                              : Colors.white,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                        onFavoriteToggle: () async {
+                          try {
+                            if (isFavorite) {
+                              await _favoritesService
+                                  .removeFromFavorites(movie.id);
+                              _showSuccessSnackBar('Removed from favorites');
+                            } else {
+                              await _favoritesService
+                                  .addToFavorites(
+                                _convertMovieToMovieModel(movie),
+                              );
+                              _showSuccessSnackBar('Added to favorites');
+                            }
+                            _loadFavorites();
+                          } catch (e) {
+                            debugPrint('Favorite toggle error: $e');
+                            _showErrorSnackBar(
+                              'Failed to update favorites. Please try again.'
+                            );
+                          }
+                        },
                       );
                     },
                   );
@@ -712,5 +597,354 @@ class _HomePageState extends State<HomePage> {
       'releaseDate': movie.year?.toString() ?? '',
       'voteAverage': 0.0,
     };
+  }
+}
+
+class MovieCard extends StatefulWidget {
+  final Movie movie;
+  final bool isFavorite;
+  final VoidCallback onTap;
+  final VoidCallback onFavoriteToggle;
+
+  const MovieCard({
+    super.key,
+    required this.movie,
+    required this.isFavorite,
+    required this.onTap,
+    required this.onFavoriteToggle,
+  });
+
+  @override
+  State<MovieCard> createState() => _MovieCardState();
+}
+
+class _MovieCardState extends State<MovieCard> {
+  bool _isHovered = false;
+  bool _isLoadingTrailer = false;
+
+  Future<void> _watchTrailer() async {
+    setState(() {
+      _isLoadingTrailer = true;
+    });
+
+    try {
+      final movieService = MovieService();
+      final trailerKey = await movieService.getMovieTrailer(widget.movie.id);
+      
+      if (trailerKey != null) {
+        final url = Uri.parse('https://www.youtube.com/watch?v=$trailerKey');
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No trailer available for this movie'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load trailer'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingTrailer = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.identity()
+            ..scale(_isHovered ? 1.08 : 1.0),
+          transformAlignment: Alignment.center,
+          child: Material(
+            color: Colors.transparent,
+            elevation: _isHovered ? 16 : 4,
+            shadowColor: Colors.black.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: _isHovered
+                      ? Border.all(color: Colors.amber, width: 2)
+                      : null,
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Movie Poster
+                    widget.movie.posterUrl.isNotEmpty
+                        ? Hero(
+                            tag: 'poster-${widget.movie.id}',
+                            child: Image.network(
+                              widget.movie.posterUrl,
+                              fit: BoxFit.cover,
+                              loadingBuilder: (context, child, progress) {
+                                if (progress == null) return child;
+                                return Container(
+                                  color: Colors.grey[800],
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                );
+                              },
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[800],
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      color: Colors.white30,
+                                      size: 40,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey[800],
+                            child: const Center(
+                              child: Icon(
+                                Icons.movie,
+                                color: Colors.white30,
+                                size: 40,
+                              ),
+                            ),
+                          ),
+
+                    // Hover overlay with info
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 200),
+                      opacity: _isHovered ? 1.0 : 0.0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.7),
+                              Colors.black.withOpacity(0.9),
+                            ],
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Rating
+                            if (widget.movie.rating != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getRatingColor(widget.movie.rating!),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.star,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      widget.movie.rating!.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            
+                            const SizedBox(height: 8),
+                            
+                            // Year
+                            if (widget.movie.year != null)
+                              Text(
+                                '${widget.movie.year}',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            
+                            const SizedBox(height: 8),
+                            
+                            // Genres (max 2)
+                            if (widget.movie.genre != null && 
+                                widget.movie.genre!.isNotEmpty)
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 4,
+                                runSpacing: 4,
+                                children: widget.movie.genre!
+                                    .take(2)
+                                    .map((g) => Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: Colors.white30,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            g,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+                            
+                            const SizedBox(height: 12),
+                            
+                            // Trailer button
+                            ElevatedButton.icon(
+                              onPressed: _isLoadingTrailer ? null : _watchTrailer,
+                              icon: _isLoadingTrailer
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.black,
+                                      ),
+                                    )
+                                  : const Icon(Icons.play_arrow, size: 18),
+                              label: Text(
+                                _isLoadingTrailer ? 'Loading...' : 'Trailer',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Title at bottom (always visible)
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _isHovered ? 0.0 : 1.0,
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.8),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Text(
+                            widget.movie.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Favorite button
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        onTap: widget.onFavoriteToggle,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.5),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          child: Icon(
+                            widget.isFavorite
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: widget.isFavorite ? Colors.red : Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getRatingColor(double rating) {
+    if (rating >= 8.0) return Colors.green;
+    if (rating >= 6.0) return Colors.amber.shade700;
+    if (rating >= 4.0) return Colors.orange;
+    return Colors.red;
   }
 }
