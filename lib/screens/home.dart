@@ -1,4 +1,3 @@
-// ...existing code...
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/favorites_service.dart';
@@ -108,13 +107,14 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   int currentPage = 1;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _favoritesService = FavoritesService();
     _searchCtrl.addListener(_onSearchChanged);
-    _moviesFuture = fetchMovies(); // loads page 1
+    _moviesFuture = _fetchMoviesWithErrorHandling(); // loads page 1
     _loadFavorites();
 
     _scrollCtrl.addListener(() {
@@ -123,7 +123,7 @@ class _HomePageState extends State<HomePage> {
           _scrollCtrl.position.pixels >=
               _scrollCtrl.position.maxScrollExtent - 300) {
         // near the bottom -> load more
-        loadMore();
+        _loadMoreMovies();
       }
     });
   }
@@ -138,6 +138,7 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       debugPrint('Error loading favorites: $e');
+      // Don't show error to user for favorites, just log it
     }
   }
 
@@ -181,84 +182,162 @@ class _HomePageState extends State<HomePage> {
       _isLoadingMore = false;
       currentPage = 1;
       _allMovies = null;
-      _moviesFuture = fetchMovies();
+      _errorMessage = null;
+      _moviesFuture = _fetchMoviesWithErrorHandling();
     });
-    final list = await _moviesFuture;
-    if (mounted) {
-      setState(() {
-        _allMovies = list;
-        _applyFilter();
-      });
-    }
   }
 
-  // fetch page 1 (used on initial load / refresh)
-  Future<List<Movie>> fetchMovies() async {
+  // Wrapper to handle errors properly
+  Future<List<Movie>> _fetchMoviesWithErrorHandling() async {
     try {
-      final rawPage = await _movie_service_getPopular(currentPage);
+      final rawPage = await _movieService.getPopularMovies(currentPage);
       final movies = rawPage
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
           .toList();
-      // set page for next load
+      
+      // Set page for next load
       currentPage = 2;
       _allMovies = movies;
       _applyFilter();
-      // if returned less than typical page size, mark hasMore false
+      
+      // If returned less than typical page size, mark hasMore false
       if (rawPage.length < 20) _hasMore = false;
+      
       return movies;
     } catch (e) {
-      throw Exception('Failed to load movies from MovieService: $e');
+      setState(() {
+        _errorMessage = _getErrorMessage(e);
+      });
+      throw Exception(_errorMessage);
     }
   }
 
-  // helper to call movie service correctly (returns List<dynamic>)
-  Future<List<dynamic>> _movie_service_getPopular(int page) {
-    return _movie_service_call(page);
-  }
-
-  Future<List<dynamic>> _movie_service_call(int page) async {
-    return await _movie_service_get(page);
-  }
-
-  // actual call to MovieService.getPopularMovies(page)
-  Future<List<dynamic>> _movie_service_get(int page) async {
-    return await _movieService.getPopularMovies(page);
-  }
-
-  // load next page and append to _allMovies
-  Future<void> loadMore() async {
+  // Load next page and append to _allMovies
+  Future<void> _loadMoreMovies() async {
     if (_isLoadingMore || !_hasMore) return;
-    setState(() => _isLoadingMore = true);
+    
+    setState(() {
+      _isLoadingMore = true;
+      _errorMessage = null;
+    });
 
     try {
-      final raw = await _movie_service_getPopular(currentPage);
-      final nextMovies = raw
+      final rawPage = await _movieService.getPopularMovies(currentPage);
+      final nextMovies = rawPage
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
           .toList();
 
       if (nextMovies.isEmpty) {
-        _hasMore = false;
+        setState(() {
+          _hasMore = false;
+          _isLoadingMore = false;
+        });
       } else {
         final list = List<Movie>.from(_allMovies ?? []);
         list.addAll(nextMovies);
+        
         setState(() {
           _allMovies = list;
           _applyFilter();
           currentPage++;
+          _isLoadingMore = false;
         });
-        // if fewer than expected results, stop further loads (TMDB default page size 20)
-        if (nextMovies.length < 20) _hasMore = false;
+        
+        // If fewer than expected results, stop further loads
+        if (nextMovies.length < 20) {
+          setState(() => _hasMore = false);
+        }
       }
     } catch (e) {
       debugPrint('Error loading more movies: $e');
-      // optionally show snackbar
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not load more movies: $e')),
-        );
+        setState(() {
+          _isLoadingMore = false;
+          _errorMessage = _getErrorMessage(e);
+        });
+        
+        _showErrorSnackBar('Could not load more movies. Please try again.');
       }
-    } finally {
-      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  // Centralized error message handler
+  String _getErrorMessage(dynamic error) {
+    final errorStr = error.toString().toLowerCase();
+    
+    if (errorStr.contains('socketexception') || 
+        errorStr.contains('network') ||
+        errorStr.contains('connection')) {
+      return 'No internet connection. Please check your network.';
+    } else if (errorStr.contains('timeout')) {
+      return 'Request timed out. Please try again.';
+    } else if (errorStr.contains('format')) {
+      return 'Unexpected data format received.';
+    } else if (errorStr.contains('401') || errorStr.contains('unauthorized')) {
+      return 'API authentication failed. Please contact support.';
+    } else if (errorStr.contains('404')) {
+      return 'Requested resource not found.';
+    } else if (errorStr.contains('500') || errorStr.contains('502') || errorStr.contains('503')) {
+      return 'Server error. Please try again later.';
+    }
+    
+    return 'An unexpected error occurred. Please try again.';
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red.shade700,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'RETRY',
+          textColor: Colors.white,
+          onPressed: () {
+            if (_allMovies == null || _allMovies!.isEmpty) {
+              _refresh();
+            } else {
+              _loadMoreMovies();
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(message),
+          ],
+        ),
+        backgroundColor: Colors.green.shade700,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  int _getColumnCount(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth >= 1400) {
+      return 5;
+    } else if (screenWidth >= 900) {
+      return 4;
+    } else if (screenWidth >= 600) {
+      return 3;
+    } else {
+      return 2;
     }
   }
 
@@ -269,7 +348,16 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Film Explorer'),
         backgroundColor: Colors.black,
         elevation: 0,
+        automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.people),
+            color: Colors.amber,
+            tooltip: 'Find Matches',
+            onPressed: () {
+              Navigator.pushNamed(context, '/matching');
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
@@ -312,56 +400,111 @@ class _HomePageState extends State<HomePage> {
               style: const TextStyle(color: Colors.white),
             ),
           ),
+          
+          // Error banner if there's an error during pagination
+          if (_errorMessage != null && _allMovies != null && _allMovies!.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: Colors.red.shade900.withOpacity(0.3),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _loadMoreMovies,
+                    child: const Text('RETRY', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
+          
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
               child: FutureBuilder<List<Movie>>(
                 future: _moviesFuture,
                 builder: (context, snapshot) {
-                  // while initial load is happening, show loader
+                  // While initial load is happening, show loader
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       (_allMovies == null || _allMovies!.isEmpty)) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
+                  // Error state for initial load
                   if (snapshot.hasError &&
                       (_allMovies == null || _allMovies!.isEmpty)) {
                     return ListView(
                       children: [
-                        const SizedBox(height: 120),
+                        const SizedBox(height: 60),
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red.shade300,
+                        ),
+                        const SizedBox(height: 20),
                         Center(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            padding: const EdgeInsets.symmetric(horizontal: 40),
                             child: Text(
-                              'Error loading movies:\n${snapshot.error}',
-                              style: const TextStyle(color: Colors.white),
+                              _errorMessage ?? 'Failed to load movies',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ),
                         ),
                         const SizedBox(height: 20),
                         Center(
-                          child: ElevatedButton(
+                          child: ElevatedButton.icon(
                             onPressed: _refresh,
-                            child: const Text('Retry'),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Try Again'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 12,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     );
                   }
 
-                  // use filtered list if searching, otherwise allMovies
+                  // Use filtered list if searching, otherwise allMovies
                   final source = (_query.isNotEmpty)
                       ? _filtered
                       : (_allMovies ?? []);
+                      
                   if (source.isEmpty) {
                     return ListView(
-                      children: const [
-                        SizedBox(height: 120),
+                      children: [
+                        const SizedBox(height: 120),
+                        const Icon(
+                          Icons.movie_filter_outlined,
+                          size: 64,
+                          color: Colors.white30,
+                        ),
+                        const SizedBox(height: 20),
                         Center(
                           child: Text(
-                            'No movies found',
-                            style: TextStyle(color: Colors.white),
+                            _query.isNotEmpty 
+                                ? 'No movies found for "$_query"'
+                                : 'No movies available',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                       ],
@@ -372,19 +515,23 @@ class _HomePageState extends State<HomePage> {
                     controller: _scrollCtrl,
                     padding: const EdgeInsets.all(16),
                     itemCount: source.length + (_isLoadingMore ? 1 : 0),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 16,
-                          crossAxisSpacing: 16,
-                          childAspectRatio: 0.65,
-                        ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: _getColumnCount(context),
+                      mainAxisSpacing: 20,
+                      crossAxisSpacing: 20,
+                      childAspectRatio: 0.6,
+                    ),
                     itemBuilder: (context, index) {
-                      // show loading indicator as last tile when loading more
+                      // Show loading indicator as last tile when loading more
                       if (index >= source.length) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
                       }
-
+                      
                       final movie = source[index];
                       final isFavorite = _favoriteIds.contains(movie.id);
 
@@ -400,88 +547,148 @@ class _HomePageState extends State<HomePage> {
                             _loadFavorites();
                           });
                         },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              movie.posterUrl.isNotEmpty
-                                  ? Hero(
-                                      tag: 'poster-${movie.id}',
-                                      child: Image.network(
-                                        movie.posterUrl,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder:
-                                            (context, child, progress) {
+                        child: Material(
+                          color: Colors.transparent,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  movie.posterUrl.isNotEmpty
+                                      ? Hero(
+                                          tag: 'poster-${movie.id}',
+                                          child: Image.network(
+                                            movie.posterUrl,
+                                            fit: BoxFit.cover,
+                                            loadingBuilder:
+                                                (context, child, progress) {
                                               if (progress == null)
                                                 return child;
-                                              return const Center(
-                                                child:
-                                                    CircularProgressIndicator(),
+                                              return Container(
+                                                color: Colors.grey[800],
+                                                child: const Center(
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  ),
+                                                ),
                                               );
                                             },
-                                        errorBuilder: (context, _, __) {
-                                          return Container(color: Colors.grey);
-                                        },
+                                            errorBuilder: (context, error, stackTrace) {
+                                              debugPrint('Image load error: $error');
+                                              return Container(
+                                                color: Colors.grey[800],
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.broken_image,
+                                                    color: Colors.white30,
+                                                    size: 40,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        )
+                                      : Container(
+                                          color: Colors.grey[800],
+                                          child: const Center(
+                                            child: Icon(
+                                              Icons.movie,
+                                              color: Colors.white30,
+                                              size: 40,
+                                            ),
+                                          ),
+                                        ),
+                                  Align(
+                                    alignment: Alignment.bottomLeft,
+                                    child: Container(
+                                      width: double.infinity,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter,
+                                          colors: [
+                                            Colors.black.withOpacity(0.8),
+                                            Colors.transparent,
+                                          ],
+                                        ),
                                       ),
-                                    )
-                                  : Container(color: Colors.grey),
-                              Align(
-                                alignment: Alignment.bottomLeft,
-                                child: Container(
-                                  width: double.infinity,
-                                  color: Colors.black54,
-                                  padding: const EdgeInsets.all(8),
-                                  child: Text(
-                                    movie.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    try {
-                                      if (isFavorite) {
-                                        await _favoritesService
-                                            .removeFromFavorites(movie.id);
-                                      } else {
-                                        await _favoritesService.addToFavorites(
-                                          _convertMovieToMovieModel(movie),
-                                        );
-                                      }
-                                      _loadFavorites();
-                                    } catch (e) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(content: Text('Error: $e')),
-                                      );
-                                    }
-                                  },
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    padding: const EdgeInsets.all(8),
-                                    child: Icon(
-                                      isFavorite
-                                          ? Icons.favorite
-                                          : Icons.favorite_border,
-                                      color: isFavorite
-                                          ? Colors.red
-                                          : Colors.white,
-                                      size: 20,
+                                      padding: const EdgeInsets.all(12),
+                                      child: Text(
+                                        movie.title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        try {
+                                          if (isFavorite) {
+                                            await _favoritesService
+                                                .removeFromFavorites(movie.id);
+                                            _showSuccessSnackBar('Removed from favorites');
+                                          } else {
+                                            await _favoritesService
+                                                .addToFavorites(
+                                              _convertMovieToMovieModel(movie),
+                                            );
+                                            _showSuccessSnackBar('Added to favorites');
+                                          }
+                                          _loadFavorites();
+                                        } catch (e) {
+                                          debugPrint('Favorite toggle error: $e');
+                                          _showErrorSnackBar(
+                                            'Failed to update favorites. Please try again.'
+                                          );
+                                        }
+                                      },
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black54,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black
+                                                  .withOpacity(0.5),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
+                                        ),
+                                        padding: const EdgeInsets.all(8),
+                                        child: Icon(
+                                          isFavorite
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          color: isFavorite
+                                              ? Colors.red
+                                              : Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                       );
@@ -507,4 +714,3 @@ class _HomePageState extends State<HomePage> {
     };
   }
 }
-// ...existing code...

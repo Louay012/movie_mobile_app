@@ -118,13 +118,33 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
               tag: 'poster-${widget.movie.id}',
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  widget.movie.posterUrl,
-                  height: 420,
+                child: Container(
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, _, __) =>
-                      Container(height: 420, color: Colors.grey),
+                  constraints: const BoxConstraints(maxHeight: 600),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Image.network(
+                    widget.movie.posterUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, _, __) => Container(
+                      height: 400,
+                      color: Colors.grey[800],
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white54,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

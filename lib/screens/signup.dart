@@ -1,9 +1,8 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -28,7 +27,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  final _ageCtrl = TextEditingController();
+  final _birthDateCtrl = TextEditingController();
+  
+  DateTime? _selectedBirthDate;
 
   bool _obscure = true;
   bool _loading = false;
@@ -37,29 +38,124 @@ class _SignUpScreenState extends State<SignUpScreen> {
   XFile? _selectedImage;
   Uint8List? _webImageBytes;
 
+  @override
+  void initState() {
+    super.initState();
+    _birthDateCtrl.addListener(_onDateInputChanged);
+  }
+
+  void _onDateInputChanged() {
+    final text = _birthDateCtrl.text;
+    final parsedDate = FormValidators.parseDateFromDDMMYYYY(text);
+    if (parsedDate != null && parsedDate != _selectedBirthDate) {
+      setState(() {
+        _selectedBirthDate = parsedDate;
+      });
+    }
+  }
+
+  Future<void> _selectBirthDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthDate ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      helpText: 'Select your birth date',
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _selectedBirthDate = picked;
+        _birthDateCtrl.text = DateFormat('dd/MM/yyyy').format(picked);
+      });
+    }
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
   Future<void> _pickImage() async {
     try {
-      final picked =
-          await ImagePicker().pickImage(source: ImageSource.gallery);
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+      );
+      
       if (picked != null) {
-        _selectedImage = picked;
+        Uint8List imageBytes;
         if (kIsWeb) {
-          _webImageBytes = await picked.readAsBytes();
+          imageBytes = await picked.readAsBytes();
+        } else {
+          imageBytes = await File(picked.path).readAsBytes();
         }
-        setState(() {});
+
+        final imageInfo = await _storage.getImageInfo(imageBytes);
+        
+        if (imageInfo.containsKey('error')) {
+          _showError('Failed to read image: ${imageInfo['error']}');
+          return;
+        }
+
+        final sizeKB = imageInfo['sizeKB'] as int;
+        final isValid = imageInfo['isValid'] as bool;
+        final formattedSize = imageInfo['formattedSize'] as String;
+
+        print('Selected image: $formattedSize');
+
+        if (!isValid) {
+          final shouldContinue = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Large Image'),
+              content: Text(
+                'The selected image is $formattedSize. '
+                'We\'ll try to compress it to fit the ${StorageService.maxImageSizeKB}KB limit.\n\n'
+                'Continue?'
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Compress & Use'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldContinue != true) return;
+        }
+
+        setState(() {
+          _selectedImage = picked;
+          _webImageBytes = imageBytes;
+        });
       }
     } catch (e) {
-      _showError('Failed to pick image');
+      _showError('Failed to pick image: ${e.toString()}');
     }
   }
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
+    
+    if (_selectedBirthDate == null) {
+      _showError('Please Enter Your Birth Date');
+      return;
+    }
 
     setState(() => _loading = true);
 
     try {
-      // Step 1: Create user in Firebase Auth
       final authResponse = await _auth.signUpWithEmail(
         email: _emailCtrl.text.trim(),
         password: _passCtrl.text.trim(),
@@ -67,29 +163,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       if (!authResponse.success || authResponse.uid == null) {
         _showError(authResponse.message ?? AppMessages.errorOccurred);
+        setState(() => _loading = false);
         return;
       }
 
       final uid = authResponse.uid!;
 
-      // Step 2: Convert image to base64 instead of uploading
       String? base64Image;
       if (_selectedImage != null) {
         setState(() => _uploadingImage = true);
+        
         try {
           final imageData = kIsWeb ? _webImageBytes! : File(_selectedImage!.path);
-          base64Image = await _storage.imageToBase64(imageData);
+          base64Image = await _storage.imageToBase64(imageData, autoCompress: true);
+          
           if (base64Image == null) {
             _showError('Failed to process image, but account will be created.');
           }
+        } on StorageServiceException catch (e) {
+          _showError('Image processing: ${e.message}. Account will be created without photo.');
+          base64Image = null;
         } catch (e) {
-          _showError('Error processing image: $e');
+          _showError('Error processing image: ${e.toString()}');
+          base64Image = null;
         } finally {
           if (mounted) setState(() => _uploadingImage = false);
         }
       }
 
-      // Step 3: Update Firebase Auth profile
       final user = _auth.currentUser;
       if (user != null) {
         await _auth.updateProfile(
@@ -99,11 +200,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
         );
       }
 
-      // Step 4: Save user to Firestore
       final userModel = UserModel(
         uid: uid,
         fullName: _nameCtrl.text.trim(),
-        age: int.parse(_ageCtrl.text.trim()),
+        birthDate: _selectedBirthDate!,
         email: _emailCtrl.text.trim(),
         photoURL: base64Image,
         createdAt: DateTime.now(),
@@ -112,6 +212,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       final saved = await _database.createUser(userModel);
       if (!saved) {
         _showError('Failed to save user data');
+        setState(() => _loading = false);
         return;
       }
 
@@ -125,7 +226,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         }
       });
     } catch (e) {
-      _showError('Signup failed: $e');
+      _showError('Signup failed: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -134,8 +235,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
         backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -143,25 +251,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Text(message),
+          ],
+        ),
         backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
   @override
   void dispose() {
+    _birthDateCtrl.removeListener(_onDateInputChanged);
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _nameCtrl.dispose();
-    _ageCtrl.dispose();
+    _birthDateCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Account')),
+      appBar: AppBar(
+        title: const Text('Create Account'),
+        automaticallyImplyLeading: false,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -195,14 +314,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           radius: 55,
                           backgroundColor: Colors.black.withOpacity(0.5),
                           child: const CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         ),
                     ],
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade900.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade300, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Optional • Max ${StorageService.maxImageSizeKB}KB',
+                      style: TextStyle(
+                        color: Colors.blue.shade100,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
               const SizedBox(height: 25),
 
               // Full Name
@@ -219,18 +361,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Age
               TextFormField(
-                controller: _ageCtrl,
-                keyboardType: TextInputType.number,
+                controller: _birthDateCtrl,
                 decoration: InputDecoration(
-                  labelText: 'Age',
+                  labelText: 'Birth Date',
                   prefixIcon: const Icon(Icons.cake),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.calendar_today),
+                    onPressed: _selectBirthDate,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  hintText: 'dd/mm/yyyy',
+                  helperText: _selectedBirthDate != null 
+                      ? 'Age: ${_calculateAge(_selectedBirthDate!)} years old'
+                      : null,
                 ),
-                validator: FormValidators.validateAge,
+                keyboardType: TextInputType.datetime,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please Enter Your Birth Date';
+                  }
+                  final parsedDate = FormValidators.parseDateFromDDMMYYYY(value);
+                  if (parsedDate == null) {
+                    return 'Invalid Date Format';
+                  }
+                  final age = _calculateAge(parsedDate);
+                  if (age < 13) {
+                    return 'You Must Be At Least 13 Years Old';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
 
@@ -286,14 +448,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Sign Up',
-                          style: TextStyle(fontSize: 18),
-                        ),
+                      : const Text('Sign Up', style: TextStyle(fontSize: 18)),
                 ),
               ),
               const SizedBox(height: 15),

@@ -7,6 +7,8 @@ import 'screens/login.dart';
 import 'screens/home.dart';
 import 'screens/favorites.dart';
 import 'screens/profile_screen.dart';
+import 'screens/matching_screen.dart';
+import 'widgets/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,11 +31,12 @@ class MovieApp extends StatelessWidget {
       ),
       home: const LoadingScreen(),
       routes: {
-        '/signup': (context) => const SignUpScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomePage(),
-        '/favorites': (context) => const FavoritesScreen(),
-        '/profile': (context) => const ProfileScreen()
+        '/signup': (context) => const GuestWrapper(child: SignUpScreen()),
+        '/login': (context) => const GuestWrapper(child: LoginScreen()),
+        '/home': (context) => const AuthWrapper(child: HomePage()),
+        '/favorites': (context) => const AuthWrapper(child: FavoritesScreen()),
+        '/profile': (context) => const AuthWrapper(child: ProfileScreen()),
+        '/matching': (context) => const AuthWrapper(child: MatchingScreen()),
       },
     );
   }
