@@ -1,4 +1,3 @@
-// ...existing code...
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/favorites_service.dart';
@@ -351,6 +350,14 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         automaticallyImplyLeading: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.people),
+            color: Colors.amber,
+            tooltip: 'Find Matches',
+            onPressed: () {
+              Navigator.pushNamed(context, '/matching');
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
@@ -707,4 +714,3 @@ class _HomePageState extends State<HomePage> {
     };
   }
 }
-// ...existing code...

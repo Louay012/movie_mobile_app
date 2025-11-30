@@ -7,6 +7,7 @@ import 'screens/login.dart';
 import 'screens/home.dart';
 import 'screens/favorites.dart';
 import 'screens/profile_screen.dart';
+import 'screens/matching_screen.dart';
 import 'widgets/auth_wrapper.dart';
 
 void main() async {
@@ -35,6 +36,7 @@ class MovieApp extends StatelessWidget {
         '/home': (context) => const AuthWrapper(child: HomePage()),
         '/favorites': (context) => const AuthWrapper(child: FavoritesScreen()),
         '/profile': (context) => const AuthWrapper(child: ProfileScreen()),
+        '/matching': (context) => const AuthWrapper(child: MatchingScreen()),
       },
     );
   }
