@@ -119,6 +119,10 @@ class DatabaseService {
     }
   }
 
+  Future<UserModel?> getUserById(String uid) async {
+    return await getUser(uid);
+  }
+
   // Update user data
   Future<bool> updateUser(String uid, Map<String, dynamic> data) async {
     try {
@@ -173,6 +177,63 @@ class DatabaseService {
       print('Unexpected error updating user: $e');
       throw DatabaseServiceException(
         'Unexpected error updating user: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<bool> updateUserProfile({
+    required String userId,
+    required String fullName,
+    required DateTime birthDate,
+    String? photoURL,
+  }) async {
+    try {
+      if (userId.isEmpty) {
+        throw DatabaseServiceException('User ID is required');
+      }
+      
+      if (fullName.isEmpty) {
+        throw DatabaseServiceException('Full name is required');
+      }
+
+      final Map<String, dynamic> updateData = {
+        'fullName': fullName,
+        'birthDate': birthDate.toIso8601String(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+
+      if (photoURL != null) {
+        updateData['photoURL'] = photoURL;
+      }
+
+      await _firestore
+          .collection(_usersCollection)
+          .doc(userId)
+          .update(updateData);
+      
+      return true;
+    } on FirebaseException catch (e) {
+      print('Firebase error updating user profile: ${e.code} - ${e.message}');
+      
+      if (e.code == 'permission-denied') {
+        throw DatabaseServiceException(
+          'Permission denied. Please check your account.',
+        );
+      } else if (e.code == 'not-found') {
+        throw DatabaseServiceException(
+          'User not found. Please try logging in again.',
+        );
+      }
+      
+      throw DatabaseServiceException(
+        'Failed to update profile: ${e.message ?? "Unknown error"}',
+      );
+    } on DatabaseServiceException {
+      rethrow;
+    } catch (e) {
+      print('Unexpected error updating user profile: $e');
+      throw DatabaseServiceException(
+        'Unexpected error updating profile: ${e.toString()}',
       );
     }
   }

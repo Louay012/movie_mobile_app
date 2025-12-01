@@ -18,8 +18,7 @@ class MatchingService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get current user's favorites movie IDs
-  Future<Set<int>> _getCurrentUserFavorites() async {
+  Future<Set<String>> _getCurrentUserFavorites() async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) return {};
 
@@ -29,7 +28,11 @@ class MatchingService {
         .collection('favorites')
         .get();
 
-    return snapshot.docs.map((doc) => doc.data()['movieId'] as int).toSet();
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      final movieId = data['id'] ?? data['movieId'] ?? doc.id;
+      return movieId.toString();
+    }).toSet();
   }
 
   // Get a user's favorites
@@ -42,11 +45,11 @@ class MatchingService {
 
     return snapshot.docs.map((doc) {
       final data = doc.data();
+      final movieId = data['id'] ?? data['movieId'] ?? doc.id;
       return {
-        'id': data['movieId'] ?? 0,
+        'id': movieId.toString(),
         'title': data['title'] ?? 'Unknown',
-        'poster': data['poster'] ?? '',
-        'posterPath': data['posterPath'],
+        'posterUrl': data['posterUrl'] ?? data['poster'] ?? data['posterPath'] ?? '',
       };
     }).toList();
   }
@@ -69,38 +72,42 @@ class MatchingService {
       // Skip current user
       if (userDoc.id == currentUserId) continue;
 
-      // Get this user's favorites
-      final userFavorites = await _getUserFavorites(userDoc.id);
-      final userFavoriteIds = userFavorites.map((m) => m['id'] as int).toSet();
+      try {
+        // Get this user's favorites
+        final userFavorites = await _getUserFavorites(userDoc.id);
+        final userFavoriteIds = userFavorites.map((m) => m['id'].toString()).toSet();
 
-      if (userFavoriteIds.isEmpty) continue;
+        if (userFavoriteIds.isEmpty) continue;
 
-      // Calculate match percentage (SYMMETRIC: based on union of both users' favorites)
-      final commonMovieIds = currentUserFavorites.intersection(userFavoriteIds);
-      final totalUniqueMovies = currentUserFavorites
-          .union(userFavoriteIds)
-          .length;
+        // Calculate match percentage (SYMMETRIC: based on union of both users' favorites)
+        final commonMovieIds = currentUserFavorites.intersection(userFavoriteIds);
+        final totalUniqueMovies = currentUserFavorites
+            .union(userFavoriteIds)
+            .length;
 
-      // Jaccard similarity: intersection / union
-      final matchPercentage = (commonMovieIds.length / totalUniqueMovies) * 100;
+        // Jaccard similarity: intersection / union
+        final matchPercentage = (commonMovieIds.length / totalUniqueMovies) * 100;
 
-      // Only include users with >= 75% match
-      if (matchPercentage >= 75) {
-        final userData = userDoc.data();
-        final user = UserModel.fromJson(userData, userDoc.id);
+        // Only include users with >= 75% match
+        if (matchPercentage >= 75) {
+          final userData = userDoc.data();
+          final user = UserModel.fromJson(userData, userDoc.id);
 
-        // Get common movies details
-        final commonMovies = userFavorites
-            .where((m) => commonMovieIds.contains(m['id']))
-            .toList();
+          // Get common movies details
+          final commonMovies = userFavorites
+              .where((m) => commonMovieIds.contains(m['id'].toString()))
+              .toList();
 
-        matchedUsers.add(
-          MatchedUser(
-            user: user,
-            matchPercentage: matchPercentage,
-            commonMovies: commonMovies,
-          ),
-        );
+          matchedUsers.add(
+            MatchedUser(
+              user: user,
+              matchPercentage: matchPercentage,
+              commonMovies: commonMovies,
+            ),
+          );
+        }
+      } catch (e) {
+        continue;
       }
     }
 

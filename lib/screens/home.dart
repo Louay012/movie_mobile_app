@@ -2,96 +2,132 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/favorites_service.dart';
 import '../services/movie_service.dart';
+import '../services/admin_service.dart';
+import '../services/auth_service.dart';
 import 'movie_details.dart';
+import 'favorites.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Movie {
-  final int id;
+  final dynamic id;
   final String title;
-  final String? posterPath;
-  final String? description;
-  final int? year;
-  final String? runningTime;
-  final List<String>? genre;
-  final String? slug;
-  final double? rating;
+  final String posterUrl;
+  final double rating;
+  final String overview;
+  final List<int> genreIds;
+  final String releaseDate;
+  final bool isCustom;
+  final int? runtime;
+  final int? budget;
+  final int? revenue;
+  final String? tagline;
+  final List<String>? productions;
+  final String? trailerUrl;
+
+  double get voteAverage => rating;
 
   Movie({
     required this.id,
     required this.title,
-    this.posterPath,
-    this.description,
-    this.year,
-    this.runningTime,
-    this.genre,
-    this.slug,
-    this.rating,
+    required this.posterUrl,
+    required this.rating,
+    required this.overview,
+    required this.genreIds,
+    required this.releaseDate,
+    this.isCustom = false,
+    this.runtime,
+    this.budget,
+    this.revenue,
+    this.tagline,
+    this.productions,
+    this.trailerUrl,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
     final rawId = json['id'] ?? json['movieId'] ?? json['tmdb_id'];
-    final id = rawId is int ? rawId : int.tryParse('$rawId') ?? 0;
+    final id = rawId is int ? rawId : (int.tryParse('$rawId') ?? rawId);
 
     final title =
         (json['title'] ?? json['name'] ?? json['original_title'] ?? 'Untitled')
             .toString();
 
-    String? poster;
-    if (json['poster'] != null) {
-      poster = json['poster'].toString();
-    } else if (json['poster_path'] != null) {
-      poster = json['poster_path'].toString();
-    } else if (json['posterUrl'] != null) {
-      poster = json['posterUrl'].toString();
+    String posterUrl = '';
+    final posterPath = json['poster_path']?.toString();
+    final poster = json['poster']?.toString();
+    final posterUrlField = json['posterUrl']?.toString();
+    
+    if (posterUrlField != null && posterUrlField.isNotEmpty) {
+      posterUrl = posterUrlField;
+    } else if (poster != null && poster.isNotEmpty) {
+      if (poster.startsWith('http')) {
+        posterUrl = poster;
+      } else {
+        posterUrl = 'https://image.tmdb.org/t/p/w500$poster';
+      }
+    } else if (posterPath != null && posterPath.isNotEmpty) {
+      if (posterPath.startsWith('http')) {
+        posterUrl = posterPath;
+      } else {
+        posterUrl = 'https://image.tmdb.org/t/p/w500$posterPath';
+      }
     }
 
-    final description =
-        json['description']?.toString() ?? json['overview']?.toString();
-    final year = json['year'] is int
-        ? json['year'] as int
-        : (json['release_date'] != null &&
-                  json['release_date'].toString().length >= 4
-              ? int.tryParse(json['release_date'].toString().substring(0, 4))
-              : int.tryParse('${json['year']}'));
-    final runningTime =
-        json['runningTime']?.toString() ?? json['runtime']?.toString();
-    final genre = (json['genre'] is List)
-        ? List<String>.from(json['genre'].map((e) => e.toString()))
-        : (json['genres'] is List
-              ? List<String>.from(
-                  (json['genres'] as List).map(
-                    (g) => g is Map && g['name'] != null
-                        ? g['name'].toString()
-                        : g.toString(),
-                  ),
-                )
-              : null);
-    final slug = json['slug']?.toString();
+    final overview = json['description']?.toString() ?? json['overview']?.toString() ?? '';
+    final releaseDate = json['release_date']?.toString() ?? json['releaseDate']?.toString() ?? '';
     
-    final rating = json['vote_average'] != null 
-        ? (json['vote_average'] is double 
-            ? json['vote_average'] 
-            : double.tryParse(json['vote_average'].toString()))
+    double rating = 0.0;
+    if (json['vote_average'] != null) {
+      rating = json['vote_average'] is double 
+          ? json['vote_average'] 
+          : double.tryParse(json['vote_average'].toString()) ?? 0.0;
+    } else if (json['voteAverage'] != null) {
+      rating = json['voteAverage'] is double 
+          ? json['voteAverage'] 
+          : double.tryParse(json['voteAverage'].toString()) ?? 0.0;
+    } else if (json['rating'] != null) {
+      rating = json['rating'] is double 
+          ? json['rating'] 
+          : double.tryParse(json['rating'].toString()) ?? 0.0;
+    }
+
+    final genreIds = (json['genre_ids'] is List)
+        ? List<int>.from((json['genre_ids'] as List).map((e) => e is int ? e : int.tryParse(e.toString()) ?? 0))
+        : (json['genreIds'] is List
+              ? List<int>.from((json['genreIds'] as List).map((e) => e is int ? e : int.tryParse(e.toString()) ?? 0))
+              : <int>[]);
+    final isCustom = json['isCustom'] == true;
+
+    final runtime = json['runtime'] is int 
+        ? json['runtime'] 
+        : int.tryParse(json['runtime']?.toString() ?? '');
+    final budget = json['budget'] is int 
+        ? json['budget'] 
+        : int.tryParse(json['budget']?.toString() ?? '');
+    final revenue = json['revenue'] is int 
+        ? json['revenue'] 
+        : int.tryParse(json['revenue']?.toString() ?? '');
+    final tagline = json['tagline']?.toString();
+    final productions = json['productions'] is List
+        ? List<String>.from(json['productions'].map((e) => e.toString()))
         : null;
+    final trailerUrl = json['trailerUrl']?.toString() ?? json['trailer_url']?.toString() ?? json['trailer']?.toString();
 
     return Movie(
       id: id,
       title: title,
-      posterPath: poster,
-      description: description,
-      year: year,
-      runningTime: runningTime,
-      genre: genre,
-      slug: slug,
+      posterUrl: posterUrl,
+      overview: overview,
+      releaseDate: releaseDate,
       rating: rating,
+      genreIds: genreIds,
+      isCustom: isCustom,
+      runtime: runtime,
+      budget: budget,
+      revenue: revenue,
+      tagline: tagline,
+      productions: productions,
+      trailerUrl: trailerUrl,
     );
-  }
-
-  String get posterUrl {
-    if (posterPath == null || posterPath!.isEmpty) return '';
-    final p = posterPath!;
-    if (p.startsWith('http')) return p;
-    return 'https://image.tmdb.org/t/p/w500$p';
   }
 }
 
@@ -110,21 +146,23 @@ class _HomePageState extends State<HomePage> {
   final _searchCtrl = TextEditingController();
   late FavoritesService _favoritesService;
   final MovieService _movieService = MovieService();
-  Set<int> _favoriteIds = {};
+  final AdminService _adminService = AdminService();
+  final AuthService _authService = AuthService();
+  Set<String> _favoriteIds = {};
 
-  // infinite scroll fields
   final ScrollController _scrollCtrl = ScrollController();
   bool _isLoadingMore = false;
   bool _hasMore = true;
   int currentPage = 1;
   String? _errorMessage;
+  final Map<dynamic, String> _trailerCache = {};
 
   @override
   void initState() {
     super.initState();
     _favoritesService = FavoritesService();
     _searchCtrl.addListener(_onSearchChanged);
-    _moviesFuture = _fetchMoviesWithErrorHandling(); // loads page 1
+    _moviesFuture = _fetchMoviesWithErrorHandling();
     _loadFavorites();
 
     _scrollCtrl.addListener(() {
@@ -132,7 +170,6 @@ class _HomePageState extends State<HomePage> {
           _hasMore &&
           _scrollCtrl.position.pixels >=
               _scrollCtrl.position.maxScrollExtent - 300) {
-        // near the bottom -> load more
         _loadMoreMovies();
       }
     });
@@ -143,12 +180,11 @@ class _HomePageState extends State<HomePage> {
       final favorites = await _favoritesService.getFavorites();
       if (mounted) {
         setState(() {
-          _favoriteIds = favorites.map((m) => m['id'] as int).toSet();
+          _favoriteIds = favorites.map((m) => m['id'].toString()).toSet();
         });
       }
     } catch (e) {
       debugPrint('Error loading favorites: $e');
-      // Don't show error to user for favorites, just log it
     }
   }
 
@@ -170,8 +206,8 @@ class _HomePageState extends State<HomePage> {
           .where(
             (m) =>
                 m.title.toLowerCase().contains(_query) ||
-                (m.description ?? '').toLowerCase().contains(_query) ||
-                (m.genre?.join(' ').toLowerCase() ?? '').contains(_query),
+                m.overview.toLowerCase().contains(_query) ||
+                m.genreIds.map((id) => id.toString()).join(' ').toLowerCase().contains(_query),
           )
           .toList();
     }
@@ -186,7 +222,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _refresh() async {
-    // reset pagination and reload page 1
     setState(() {
       _hasMore = true;
       _isLoadingMore = false;
@@ -197,20 +232,29 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  // Wrapper to handle errors properly
   Future<List<Movie>> _fetchMoviesWithErrorHandling() async {
     try {
+      List<Movie> customMovies = [];
+      try {
+        final customMoviesData = await _adminService.getCustomMovies();
+        customMovies = customMoviesData
+            .map((e) => Movie.fromJson({...e, 'isCustom': true}))
+            .toList();
+      } catch (e) {
+        debugPrint('Error loading custom movies: $e');
+      }
+
       final rawPage = await _movieService.getPopularMovies(currentPage);
-      final movies = rawPage
+      final tmdbMovies = rawPage
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
           .toList();
       
-      // Set page for next load
+      final movies = [...customMovies, ...tmdbMovies];
+      
       currentPage = 2;
       _allMovies = movies;
       _applyFilter();
       
-      // If returned less than typical page size, mark hasMore false
       if (rawPage.length < 20) _hasMore = false;
       
       return movies;
@@ -222,7 +266,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Load next page and append to _allMovies
   Future<void> _loadMoreMovies() async {
     if (_isLoadingMore || !_hasMore) return;
     
@@ -253,7 +296,6 @@ class _HomePageState extends State<HomePage> {
           _isLoadingMore = false;
         });
         
-        // If fewer than expected results, stop further loads
         if (nextMovies.length < 20) {
           setState(() => _hasMore = false);
         }
@@ -272,7 +314,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Centralized error message handler
   String _getErrorMessage(dynamic error) {
     final errorStr = error.toString().toLowerCase();
     
@@ -347,6 +388,155 @@ class _HomePageState extends State<HomePage> {
     return 2;
   }
 
+  Future<String?> _getTrailerUrl(Movie movie) async {
+    if (movie.isCustom) {
+      return movie.trailerUrl;
+    }
+    
+    // Check cache first
+    if (_trailerCache.containsKey(movie.id)) {
+      return _trailerCache[movie.id];
+    }
+    
+    try {
+      final movieIdInt = int.tryParse(movie.id.toString());
+      if (movieIdInt == null) {
+        return null;
+      }
+      final trailerKey = await _movieService.getMovieTrailer(movieIdInt);
+      if (trailerKey != null) {
+        final url = 'https://www.youtube.com/watch?v=$trailerKey';
+        _trailerCache[movie.id] = url;
+        return url;
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    return null;
+  }
+
+  Widget _buildMovieGrid(List<Movie> movies) {
+    return SliverGrid(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: MediaQuery.of(context).size.width > 900
+            ? 5
+            : MediaQuery.of(context).size.width > 600
+                ? 4
+                : 3,
+        childAspectRatio: 0.65,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final movie = movies[index];
+          final isFavorite = _favoriteIds.contains(movie.id.toString());
+          return MovieCard(
+            movie: movie,
+            isFavorite: isFavorite,
+            getTrailerUrl: _getTrailerUrl,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MovieDetailsPage(movie: movie),
+                ),
+              ).then((_) {
+                _loadFavorites();
+              });
+            },
+            onFavoriteToggle: () => _toggleFavorite(movie),
+          );
+        },
+        childCount: movies.length,
+      ),
+    );
+  }
+
+  void _toggleFavorite(Movie movie) async {
+    try {
+      if (_favoriteIds.contains(movie.id.toString())) {
+        await _favoritesService.removeFromFavorites(movie.id);
+        _showSuccessSnackBar('Removed from favorites');
+      } else {
+        await _favoritesService.addToFavorites(
+          _convertMovieToMovieModel(movie),
+        );
+        _showSuccessSnackBar('Added to favorites');
+      }
+      _loadFavorites();
+    } catch (e) {
+      debugPrint('Favorite toggle error: $e');
+      _showErrorSnackBar(
+        'Failed to update favorites. Please try again.'
+      );
+    }
+  }
+
+  dynamic _convertMovieToMovieModel(Movie movie) {
+    return {
+      'id': movie.id,
+      'title': movie.title,
+      'posterUrl': movie.posterUrl,
+      'overview': movie.overview,
+      'releaseDate': movie.releaseDate,
+      'rating': movie.rating,
+      'isCustom': movie.isCustom,
+      'trailerUrl': movie.trailerUrl,
+      'runtime': movie.runtime,
+      'budget': movie.budget,
+      'revenue': movie.revenue,
+      'tagline': movie.tagline,
+      'productions': movie.productions,
+    };
+  }
+
+  void _navigateToFavorites() async {
+    final shouldRefresh = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (context) => FavoritesScreen()),
+    );
+    if (shouldRefresh == true && mounted) {
+      _loadFavorites();
+    }
+  }
+
+  Future<void> _signOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey.shade900,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Are you sure you want to sign out?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey.shade400)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _authService.signOut();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -367,15 +557,41 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.favorite),
             color: Colors.red,
-            onPressed: () {
-              Navigator.pushNamed(context, '/favorites');
-            },
+            onPressed: _navigateToFavorites,
           ),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.pushNamed(context, '/profile');
+            color: Colors.grey.shade900,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (value) {
+              if (value == 'profile') {
+                Navigator.pushNamed(context, '/profile');
+              } else if (value == 'signout') {
+                _signOut();
+              }
             },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, color: Colors.amber, size: 20),
+                    const SizedBox(width: 12),
+                    const Text('Profile', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'signout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red.shade400, size: 20),
+                    const SizedBox(width: 12),
+                    Text('Sign Out', style: TextStyle(color: Colors.red.shade400)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -407,7 +623,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           
-          // Error banner if there's an error during pagination
           if (_errorMessage != null && _allMovies != null && _allMovies!.isNotEmpty)
             Container(
               width: double.infinity,
@@ -437,13 +652,11 @@ class _HomePageState extends State<HomePage> {
               child: FutureBuilder<List<Movie>>(
                 future: _moviesFuture,
                 builder: (context, snapshot) {
-                  // While initial load is happening, show loader
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       (_allMovies == null || _allMovies!.isEmpty)) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  // Error state for initial load
                   if (snapshot.hasError &&
                       (_allMovies == null || _allMovies!.isEmpty)) {
                     return ListView(
@@ -487,7 +700,6 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
 
-                  // Use filtered list if searching, otherwise allMovies
                   final source = (_query.isNotEmpty)
                       ? _filtered
                       : (_allMovies ?? []);
@@ -517,67 +729,18 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
 
-                  return GridView.builder(
+                  return CustomScrollView(
                     controller: _scrollCtrl,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: source.length + (_isLoadingMore ? 1 : 0),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: _getColumnCount(context),
-                      mainAxisSpacing: 20,
-                      crossAxisSpacing: 20,
-                      childAspectRatio: 0.55,
-                    ),
-                    itemBuilder: (context, index) {
-                      // Show loading indicator as last tile when loading more
-                      if (index >= source.length) {
-                        return const Center(
+                    slivers: [
+                      _buildMovieGrid(source),
+                      if (_isLoadingMore)
+                        SliverToBoxAdapter(
                           child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: CircularProgressIndicator(),
+                            padding: const EdgeInsets.all(16.0),
+                            child: Center(child: CircularProgressIndicator()),
                           ),
-                        );
-                      }
-                      
-                      final movie = source[index];
-                      final isFavorite = _favoriteIds.contains(movie.id);
-
-                      return MovieCard(
-                        movie: movie,
-                        isFavorite: isFavorite,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  MovieDetailsPage(movie: movie),
-                            ),
-                          ).then((_) {
-                            _loadFavorites();
-                          });
-                        },
-                        onFavoriteToggle: () async {
-                          try {
-                            if (isFavorite) {
-                              await _favoritesService
-                                  .removeFromFavorites(movie.id);
-                              _showSuccessSnackBar('Removed from favorites');
-                            } else {
-                              await _favoritesService
-                                  .addToFavorites(
-                                _convertMovieToMovieModel(movie),
-                              );
-                              _showSuccessSnackBar('Added to favorites');
-                            }
-                            _loadFavorites();
-                          } catch (e) {
-                            debugPrint('Favorite toggle error: $e');
-                            _showErrorSnackBar(
-                              'Failed to update favorites. Please try again.'
-                            );
-                          }
-                        },
-                      );
-                    },
+                        ),
+                    ],
                   );
                 },
               ),
@@ -587,17 +750,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  dynamic _convertMovieToMovieModel(Movie movie) {
-    return {
-      'id': movie.id,
-      'title': movie.title,
-      'posterPath': movie.posterPath,
-      'overview': movie.description,
-      'releaseDate': movie.year?.toString() ?? '',
-      'voteAverage': 0.0,
-    };
-  }
 }
 
 class MovieCard extends StatefulWidget {
@@ -605,6 +757,7 @@ class MovieCard extends StatefulWidget {
   final bool isFavorite;
   final VoidCallback onTap;
   final VoidCallback onFavoriteToggle;
+  final Future<String?> Function(Movie) getTrailerUrl;
 
   const MovieCard({
     super.key,
@@ -612,6 +765,7 @@ class MovieCard extends StatefulWidget {
     required this.isFavorite,
     required this.onTap,
     required this.onFavoriteToggle,
+    required this.getTrailerUrl,
   });
 
   @override
@@ -620,52 +774,58 @@ class MovieCard extends StatefulWidget {
 
 class _MovieCardState extends State<MovieCard> {
   bool _isHovered = false;
+  bool _isTrailerHovered = false;
+  String? _trailerUrl;
   bool _isLoadingTrailer = false;
+  bool _trailerLoaded = false; // Track if trailer fetch completed
 
-  Future<void> _watchTrailer() async {
-    setState(() {
-      _isLoadingTrailer = true;
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadTrailer();
+  }
 
+  Future<void> _loadTrailer() async {
+    setState(() => _isLoadingTrailer = true);
     try {
-      final movieService = MovieService();
-      final trailerKey = await movieService.getMovieTrailer(widget.movie.id);
-      
-      if (trailerKey != null) {
-        final url = Uri.parse('https://www.youtube.com/watch?v=$trailerKey');
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No trailer available for this movie'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+      final url = await widget.getTrailerUrl(widget.movie);
+      if (mounted) {
+        setState(() {
+          _trailerUrl = url;
+          _isLoadingTrailer = false;
+          _trailerLoaded = true; // Mark as loaded
+        });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to load trailer'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
         setState(() {
           _isLoadingTrailer = false;
+          _trailerLoaded = true;
         });
+      }
+    }
+  }
+
+  Future<void> _launchTrailer() async {
+    if (_trailerUrl != null && _trailerUrl!.isNotEmpty) {
+      final uri = Uri.tryParse(_trailerUrl!);
+      if (uri != null) {
+        try {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (e) {
+          try {
+            await launchUrl(uri, mode: LaunchMode.platformDefault);
+          } catch (_) {}
+        }
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasTrailer = _trailerUrl != null && _trailerUrl!.isNotEmpty;
+    final showTrailerButton = _isHovered && (_isLoadingTrailer || hasTrailer || !_trailerLoaded);
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -673,278 +833,208 @@ class _MovieCardState extends State<MovieCard> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          transform: Matrix4.identity()
-            ..scale(_isHovered ? 1.08 : 1.0),
-          transformAlignment: Alignment.center,
-          child: Material(
-            color: Colors.transparent,
-            elevation: _isHovered ? 16 : 4,
-            shadowColor: Colors.black.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: _isHovered
-                      ? Border.all(color: Colors.amber, width: 2)
-                      : null,
-                ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Movie Poster
-                    widget.movie.posterUrl.isNotEmpty
-                        ? Hero(
-                            tag: 'poster-${widget.movie.id}',
-                            child: Image.network(
-                              widget.movie.posterUrl,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, progress) {
-                                if (progress == null) return child;
-                                return Container(
-                                  color: Colors.grey[800],
-                                  child: const Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey[800],
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.broken_image,
-                                      color: Colors.white30,
-                                      size: 40,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          )
-                        : Container(
+          transform: Matrix4.identity()..scale(_isHovered ? 1.02 : 1.0),
+          child: Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: widget.movie.posterUrl.isNotEmpty
+                    ? Image.network(
+                        widget.movie.posterUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
                             color: Colors.grey[800],
-                            child: const Center(
-                              child: Icon(
-                                Icons.movie,
-                                color: Colors.white30,
-                                size: 40,
-                              ),
+                            child: const Icon(
+                              Icons.movie,
+                              color: Colors.grey,
+                              size: 50,
                             ),
-                          ),
-
-                    // Hover overlay with info
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: _isHovered ? 1.0 : 0.0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.7),
-                              Colors.black.withOpacity(0.9),
+                          );
+                        },
+                      )
+                    : Container(
+                        color: Colors.grey[800],
+                        child: const Icon(
+                          Icons.movie,
+                          color: Colors.grey,
+                          size: 50,
+                        ),
+                      ),
+              ),
+              if (_isHovered)
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      color: Colors.black.withOpacity(0.7),
+                    ),
+                  ),
+                ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 100,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12),
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.9),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (_isHovered && _isLoadingTrailer && !_trailerLoaded)
+                Positioned.fill(
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      child: const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.amber,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (_isHovered && hasTrailer && _trailerLoaded)
+                Positioned.fill(
+                  child: Center(
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      onEnter: (_) => setState(() => _isTrailerHovered = true),
+                      onExit: (_) => setState(() => _isTrailerHovered = false),
+                      child: GestureDetector(
+                        onTap: _launchTrailer,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _isTrailerHovered ? Colors.amber.shade600 : Colors.amber,
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.amber.withOpacity(_isTrailerHovered ? 0.6 : 0.4),
+                                blurRadius: _isTrailerHovered ? 16 : 12,
+                                spreadRadius: _isTrailerHovered ? 3 : 2,
+                              ),
                             ],
                           ),
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Rating
-                            if (widget.movie.rating != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _getRatingColor(widget.movie.rating!),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.star,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      widget.movie.rating!.toStringAsFixed(1),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            
-                            const SizedBox(height: 8),
-                            
-                            // Year
-                            if (widget.movie.year != null)
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.play_circle_filled, color: Colors.black, size: 20),
+                              SizedBox(width: 6),
                               Text(
-                                '${widget.movie.year}',
-                                style: const TextStyle(
-                                  color: Colors.white70,
+                                'Watch Trailer',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
                               ),
-                            
-                            const SizedBox(height: 8),
-                            
-                            // Genres (max 2)
-                            if (widget.movie.genre != null && 
-                                widget.movie.genre!.isNotEmpty)
-                              Wrap(
-                                alignment: WrapAlignment.center,
-                                spacing: 4,
-                                runSpacing: 4,
-                                children: widget.movie.genre!
-                                    .take(2)
-                                    .map((g) => Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(
-                                              color: Colors.white30,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            g,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ))
-                                    .toList(),
-                              ),
-                            
-                            const SizedBox(height: 12),
-                            
-                            // Trailer button
-                            ElevatedButton.icon(
-                              onPressed: _isLoadingTrailer ? null : _watchTrailer,
-                              icon: _isLoadingTrailer
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.black,
-                                      ),
-                                    )
-                                  : const Icon(Icons.play_arrow, size: 18),
-                              label: Text(
-                                _isLoadingTrailer ? 'Loading...' : 'Trailer',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.amber,
-                                foregroundColor: Colors.black,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Title at bottom (always visible)
-                    Align(
-                      alignment: Alignment.bottomLeft,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        opacity: _isHovered ? 0.0 : 1.0,
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.8),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          child: Text(
-                            widget.movie.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Favorite button
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: GestureDetector(
-                        onTap: widget.onFavoriteToggle,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.5),
-                                blurRadius: 4,
-                              ),
                             ],
                           ),
-                          padding: const EdgeInsets.all(8),
-                          child: Icon(
-                            widget.isFavorite
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            color: widget.isFavorite ? Colors.red : Colors.white,
-                            size: 18,
-                          ),
                         ),
                       ),
+                    ),
+                  ),
+                ),
+              Positioned(
+                bottom: 8,
+                left: 8,
+                right: 8,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.movie.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          color: Colors.amber,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          widget.movie.rating.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (widget.movie.isCustom)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.amber,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'NEW',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: widget.onFavoriteToggle,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: widget.isFavorite ? Colors.red : Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
-  }
-
-  Color _getRatingColor(double rating) {
-    if (rating >= 8.0) return Colors.green;
-    if (rating >= 6.0) return Colors.amber.shade700;
-    if (rating >= 4.0) return Colors.orange;
-    return Colors.red;
   }
 }

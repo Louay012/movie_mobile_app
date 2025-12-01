@@ -1,10 +1,12 @@
 class UserModel {
   final String uid;
   final String fullName;
-  final DateTime birthDate; // Changed from int age
+  final DateTime birthDate;
   final String email;
   final String? photoURL;
   final DateTime? createdAt;
+  final bool isAdmin;
+  final bool isActive;
 
   UserModel({
     required this.uid,
@@ -13,6 +15,8 @@ class UserModel {
     required this.email,
     this.photoURL,
     this.createdAt,
+    this.isAdmin = false,
+    this.isActive = true,
   });
 
   // Calculate age from birthdate
@@ -32,22 +36,18 @@ class UserModel {
     
     // Handle both old age field and new birthDate field
     if (json.containsKey('birthDate') && json['birthDate'] != null) {
-      // New format: birthDate as ISO string
       if (json['birthDate'] is String) {
         birthDate = DateTime.parse(json['birthDate']);
       } else if (json['birthDate'] is DateTime) {
         birthDate = json['birthDate'];
       } else {
-        // Fallback: use a default date
         birthDate = DateTime(2000, 1, 1);
       }
     } else if (json.containsKey('age') && json['age'] != null) {
-      // Old format: convert age to approximate birthdate
       final age = json['age'] as int;
       final now = DateTime.now();
       birthDate = DateTime(now.year - age, 1, 1);
     } else {
-      // No date info, use default
       birthDate = DateTime(2000, 1, 1);
     }
 
@@ -62,11 +62,13 @@ class UserModel {
 
     return UserModel(
       uid: uid,
-      fullName: json['fullName'] ?? '',
+      fullName: json['fullName'] ?? json['name'] ?? '',
       birthDate: birthDate,
       email: json['email'] ?? '',
-      photoURL: json['photoURL'],
+      photoURL: json['photoURL'] ?? json['profileImageUrl'],
       createdAt: createdAt,
+      isAdmin: json['isAdmin'] ?? false,
+      isActive: json['isActive'] ?? true,
     );
   }
 
@@ -76,10 +78,12 @@ class UserModel {
       'uid': uid,
       'fullName': fullName,
       'birthDate': birthDate.toIso8601String(),
-      'age': age, // Keep for backward compatibility
+      'age': age,
       'email': email,
       if (photoURL != null) 'photoURL': photoURL,
       'createdAt': createdAt?.toIso8601String(),
+      'isAdmin': isAdmin,
+      'isActive': isActive,
     };
   }
 
@@ -91,6 +95,8 @@ class UserModel {
     String? email,
     String? photoURL,
     DateTime? createdAt,
+    bool? isAdmin,
+    bool? isActive,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -99,11 +105,13 @@ class UserModel {
       email: email ?? this.email,
       photoURL: photoURL ?? this.photoURL,
       createdAt: createdAt ?? this.createdAt,
+      isAdmin: isAdmin ?? this.isAdmin,
+      isActive: isActive ?? this.isActive,
     );
   }
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, fullName: $fullName, birthDate: $birthDate, age: $age, email: $email)';
+    return 'UserModel(uid: $uid, fullName: $fullName, birthDate: $birthDate, age: $age, email: $email, isAdmin: $isAdmin, isActive: $isActive)';
   }
 }

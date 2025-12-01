@@ -320,11 +320,11 @@ class _MatchingScreenState extends State<MatchingScreen>
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 100, 24, 20),
+              padding: const EdgeInsets.fromLTRB(24, 80, 24, 16),
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -346,35 +346,33 @@ class _MatchingScreenState extends State<MatchingScreen>
                           children: [
                             Icon(
                               Icons.favorite,
-                              size: 40, // match text size
+                              size: 32,
                               color: Colors.red.shade400,
                             ),
                             const SizedBox(width: 8),
-
                             Text(
                               '${_matchedUsers!.length}',
                               style: const TextStyle(
-                                fontSize: 40, // same as icon size
+                                fontSize: 32,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
                             ),
                           ],
                         ),
-
                         Text(
                           'Match${_matchedUsers!.length > 1 ? 'es' : ''} Found',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             color: Colors.white.withOpacity(0.8),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Text(
                           'Users who share your movie passion',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             color: Colors.white.withOpacity(0.6),
                           ),
                         ),
@@ -412,7 +410,7 @@ class _MatchingScreenState extends State<MatchingScreen>
 
   Widget _buildMatchCard(MatchedUser match) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -422,7 +420,7 @@ class _MatchingScreenState extends State<MatchingScreen>
             Colors.white.withOpacity(0.05),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: Colors.deepPurpleAccent.withOpacity(0.3),
           width: 1.5,
@@ -430,8 +428,8 @@ class _MatchingScreenState extends State<MatchingScreen>
         boxShadow: [
           BoxShadow(
             color: Colors.deepPurpleAccent.withOpacity(0.2),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -439,7 +437,7 @@ class _MatchingScreenState extends State<MatchingScreen>
         children: [
           // User info header
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 // Profile picture with glow effect
@@ -449,14 +447,14 @@ class _MatchingScreenState extends State<MatchingScreen>
                     boxShadow: [
                       BoxShadow(
                         color: Colors.deepPurpleAccent.withOpacity(0.5),
-                        blurRadius: 15,
-                        spreadRadius: 2,
+                        blurRadius: 12,
+                        spreadRadius: 1,
                       ),
                     ],
                   ),
                   child: Container(
-                    width: 70,
-                    height: 70,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
@@ -465,7 +463,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                           Colors.deepPurple.shade700,
                         ],
                       ),
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: ClipOval(
                       child:
@@ -480,7 +478,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                       ? match.user.fullName[0].toUpperCase()
                                       : '?',
                                   style: const TextStyle(
-                                    fontSize: 28,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -493,7 +491,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                                     ? match.user.fullName[0].toUpperCase()
                                     : '?',
                                 style: const TextStyle(
-                                  fontSize: 28,
+                                  fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
@@ -502,7 +500,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 // User details
                 Expanded(
                   child: Column(
@@ -511,24 +509,24 @@ class _MatchingScreenState extends State<MatchingScreen>
                       Text(
                         match.user.fullName,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Icon(
                             Icons.cake_outlined,
-                            size: 16,
+                            size: 14,
                             color: Colors.white.withOpacity(0.7),
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                           Text(
                             '${match.user.age} years old',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               color: Colors.white.withOpacity(0.7),
                             ),
                           ),
@@ -539,21 +537,21 @@ class _MatchingScreenState extends State<MatchingScreen>
                 ),
                 // Match percentage badge
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: _getMatchColors(match.matchPercentage),
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: _getMatchColors(
                           match.matchPercentage,
                         )[0].withOpacity(0.5),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
@@ -562,7 +560,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                       Text(
                         '${match.matchPercentage.toStringAsFixed(0)}%',
                         style: const TextStyle(
-                          fontSize: 24,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
@@ -570,7 +568,7 @@ class _MatchingScreenState extends State<MatchingScreen>
                       const Text(
                         'Match',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 10,
                           color: Colors.white,
                           fontWeight: FontWeight.w500,
                         ),
@@ -582,114 +580,8 @@ class _MatchingScreenState extends State<MatchingScreen>
             ),
           ),
 
-          // Common movies section
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black.withOpacity(0.4),
-                  Colors.black.withOpacity(0.6),
-                ],
-              ),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.deepPurpleAccent.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.movie,
-                        size: 18,
-                        color: Colors.deepPurpleAccent,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${match.commonMovies.length} Common Favorite${match.commonMovies.length > 1 ? 's' : ''}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Common movies horizontal scrolling list
-                SizedBox(
-                  height: 140,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: match.commonMovies.length,
-                    itemBuilder: (context, index) {
-                      final movie = match.commonMovies[index];
-                      return Container(
-                        width: 90,
-                        margin: const EdgeInsets.only(right: 12),
-                        child: Column(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.5),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  movie['poster'] ?? '',
-                                  width: 90,
-                                  height: 120,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    width: 90,
-                                    height: 120,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.grey.shade800,
-                                          Colors.grey.shade900,
-                                        ],
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.movie,
-                                      color: Colors.white38,
-                                      size: 32,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Common movies section with scroll buttons
+          _CommonMoviesSection(commonMovies: match.commonMovies),
         ],
       ),
     );
@@ -703,5 +595,266 @@ class _MatchingScreenState extends State<MatchingScreen>
     } else {
       return [const Color(0xFF8e2de2), const Color(0xFF4a00e0)];
     }
+  }
+}
+
+class _CommonMoviesSection extends StatefulWidget {
+  final List<Map<String, dynamic>> commonMovies;
+
+  const _CommonMoviesSection({required this.commonMovies});
+
+  @override
+  State<_CommonMoviesSection> createState() => _CommonMoviesSectionState();
+}
+
+class _CommonMoviesSectionState extends State<_CommonMoviesSection> {
+  final ScrollController _scrollController = ScrollController();
+  bool _showLeftArrow = false;
+  bool _showRightArrow = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateArrows);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateArrows());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateArrows() {
+    if (!_scrollController.hasClients) return;
+    
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    
+    setState(() {
+      _showLeftArrow = currentScroll > 10;
+      _showRightArrow = currentScroll < maxScroll - 10;
+    });
+  }
+
+  void _scrollLeft() {
+    _scrollController.animateTo(
+      _scrollController.offset - 200,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _scrollRight() {
+    _scrollController.animateTo(
+      _scrollController.offset + 200,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withOpacity(0.4),
+            Colors.black.withOpacity(0.6),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurpleAccent.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.movie,
+                  size: 16,
+                  color: Colors.deepPurpleAccent,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${widget.commonMovies.length} Common Favorite${widget.commonMovies.length > 1 ? 's' : ''}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 110,
+            child: Stack(
+              children: [
+                ListView.builder(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: widget.commonMovies.length,
+                  itemBuilder: (context, index) {
+                    final movie = widget.commonMovies[index];
+                    return Container(
+                      width: 70,
+                      margin: const EdgeInsets.only(right: 10),
+                      child: Column(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.5),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                _getMoviePoster(movie),
+                                width: 70,
+                                height: 95,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 70,
+                                  height: 95,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.grey.shade800,
+                                        Colors.grey.shade900,
+                                      ],
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.movie,
+                                    color: Colors.white38,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                if (_showLeftArrow)
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      onTap: _scrollLeft,
+                      child: Container(
+                        width: 32,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                            colors: [
+                              Colors.black.withOpacity(0.8),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurpleAccent.withOpacity(0.8),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.chevron_left,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_showRightArrow)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    child: GestureDetector(
+                      onTap: _scrollRight,
+                      child: Container(
+                        width: 32,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.centerRight,
+                            end: Alignment.centerLeft,
+                            colors: [
+                              Colors.black.withOpacity(0.8),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.deepPurpleAccent.withOpacity(0.8),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.chevron_right,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getMoviePoster(Map<String, dynamic> movie) {
+    // Check all possible field names for poster URL
+    final poster = movie['posterUrl']?.toString() ?? 
+                   movie['poster']?.toString() ?? 
+                   movie['poster_path']?.toString() ?? 
+                   movie['posterPath']?.toString() ?? '';
+    if (poster.isEmpty) return '';
+    // Handle TMDB paths
+    if (poster.startsWith('/')) {
+      return 'https://image.tmdb.org/t/p/w500$poster';
+    }
+    // If it's already a full URL, return as is
+    if (poster.startsWith('http')) {
+      return poster;
+    }
+    return poster;
   }
 }

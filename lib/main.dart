@@ -8,6 +8,12 @@ import 'screens/home.dart';
 import 'screens/favorites.dart';
 import 'screens/profile_screen.dart';
 import 'screens/matching_screen.dart';
+import 'screens/admin_users_screen.dart';
+import 'screens/admin_movies_screen.dart';
+import 'screens/admin_home_screen.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/deactivated_screen.dart';
+import 'screens/admin_profile_screen.dart';
 import 'widgets/auth_wrapper.dart';
 
 void main() async {
@@ -31,12 +37,18 @@ class MovieApp extends StatelessWidget {
       ),
       home: const LoadingScreen(),
       routes: {
+        '/welcome': (context) => const GuestWrapper(child: WelcomeScreen()),
         '/signup': (context) => const GuestWrapper(child: SignUpScreen()),
         '/login': (context) => const GuestWrapper(child: LoginScreen()),
-        '/home': (context) => const AuthWrapper(child: HomePage()),
-        '/favorites': (context) => const AuthWrapper(child: FavoritesScreen()),
-        '/profile': (context) => const AuthWrapper(child: ProfileScreen()),
-        '/matching': (context) => const AuthWrapper(child: MatchingScreen()),
+        '/home': (context) => const AuthWrapper(child: HomePage(), allowAdmin: false),
+        '/favorites': (context) => const AuthWrapper(child: FavoritesScreen(), allowAdmin: false),
+        '/profile': (context) => const AuthWrapper(child: ProfileScreen(), allowAdmin: false),
+        '/matching': (context) => const AuthWrapper(child: MatchingScreen(), allowAdmin: false),
+        '/admin/home': (context) => const AdminWrapper(child: AdminHomeScreen()),
+        '/admin/users': (context) => const AdminWrapper(child: AdminUsersScreen()),
+        '/admin/movies': (context) => const AdminWrapper(child: AdminMoviesScreen()),
+        '/admin/profile': (context) => const AdminWrapper(child: AdminProfileScreen()),
+        '/deactivated': (context) => const DeactivatedScreen(),
       },
     );
   }

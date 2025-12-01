@@ -33,7 +33,6 @@ class FavoritesService {
     try {
       final userId = _getCurrentUserId();
       
-      // Validate movie data
       if (movie == null) {
         throw FavoritesServiceException('Invalid movie data');
       }
@@ -46,18 +45,38 @@ class FavoritesService {
         throw FavoritesServiceException('Movie title is required');
       }
 
+      final movieIdStr = movie['id'].toString();
+      
+      // Resolve poster URL
+      String posterUrl = '';
+      if (movie['posterUrl'] != null && movie['posterUrl'].toString().isNotEmpty) {
+        posterUrl = movie['posterUrl'].toString();
+      } else if (movie['poster'] != null && movie['poster'].toString().isNotEmpty) {
+        posterUrl = movie['poster'].toString();
+      } else {
+        posterUrl = _getPosterUrl(movie['posterPath']?.toString());
+      }
+
+      // Store only canonical field names - no duplicates
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('favorites')
-          .doc(movie['id'].toString())
+          .doc(movieIdStr)
           .set({
-        'movieId': movie['id'],
+        'id': movieIdStr,
         'title': movie['title'],
-        'posterPath': movie['posterPath'],
-        'poster': _getPosterUrl(movie['posterPath']),
-        'description': movie['overview'] ?? '',
-        'rating': movie['voteAverage'] ?? 0.0,
+        'posterUrl': posterUrl,
+        'overview': movie['overview'] ?? movie['description'] ?? '',
+        'rating': (movie['rating'] ?? movie['voteAverage'] ?? movie['vote_average'] ?? 0.0).toDouble(),
+        'releaseDate': movie['releaseDate'] ?? movie['release_date'] ?? '',
+        'isCustom': movie['isCustom'] == true,
+        'trailerUrl': movie['trailerUrl'] ?? '',
+        'runtime': movie['runtime'],
+        'budget': movie['budget'],
+        'revenue': movie['revenue'],
+        'tagline': movie['tagline'],
+        'productions': movie['productions'],
         'addedAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseAuthException catch (e) {
@@ -144,7 +163,6 @@ class FavoritesService {
 
       return doc.exists;
     } on FirebaseException catch (e) {
-      // Silently fail for check operations
       print('Error checking favorite status: ${e.message}');
       return false;
     } catch (e) {
@@ -168,28 +186,41 @@ class FavoritesService {
       return snapshot.docs.map((doc) {
         try {
           final data = doc.data();
-          final posterUrl = data.containsKey('poster') && data['poster'] != null
-              ? data['poster']
-              : _getPosterUrl(data['posterPath']);
+          
+          // Resolve poster URL from various possible field names
+          String posterUrl = '';
+          if (data['posterUrl'] != null && data['posterUrl'].toString().isNotEmpty) {
+            posterUrl = data['posterUrl'].toString();
+          } else if (data['poster'] != null && data['poster'].toString().isNotEmpty) {
+            posterUrl = data['poster'].toString();
+          } else {
+            posterUrl = _getPosterUrl(data['posterPath']?.toString());
+          }
           
           return {
-            'id': data['movieId'] ?? 0,
+            'id': data['id'] ?? doc.id,
             'title': data['title'] ?? 'Unknown',
-            'posterPath': data['posterPath'],
-            'poster': posterUrl,
-            'description': data['description'] ?? '',
-            'rating': data['rating'] ?? 0.0,
+            'posterUrl': posterUrl,
+            'overview': data['overview'] ?? data['description'] ?? '',
+            'rating': (data['rating'] ?? data['vote_average'] ?? data['voteAverage'] ?? 0.0).toDouble(),
+            'releaseDate': data['releaseDate'] ?? data['release_date'] ?? '',
+            'isCustom': data['isCustom'] ?? false,
+            'trailerUrl': data['trailerUrl'] ?? '',
+            'runtime': data['runtime'],
+            'budget': data['budget'],
+            'revenue': data['revenue'],
+            'tagline': data['tagline'],
+            'productions': data['productions'],
           };
         } catch (e) {
           print('Error parsing favorite: $e');
-          // Return a placeholder for corrupted data
           return {
-            'id': 0,
+            'id': doc.id,
             'title': 'Error loading movie',
-            'posterPath': null,
-            'poster': '',
-            'description': '',
+            'posterUrl': '',
+            'overview': '',
             'rating': 0.0,
+            'isCustom': false,
           };
         }
       }).toList();
@@ -237,27 +268,40 @@ class FavoritesService {
             return snapshot.docs.map((doc) {
               try {
                 final data = doc.data();
-                final posterUrl = data.containsKey('poster') && data['poster'] != null
-                    ? data['poster']
-                    : _getPosterUrl(data['posterPath']);
+                
+                String posterUrl = '';
+                if (data['posterUrl'] != null && data['posterUrl'].toString().isNotEmpty) {
+                  posterUrl = data['posterUrl'].toString();
+                } else if (data['poster'] != null && data['poster'].toString().isNotEmpty) {
+                  posterUrl = data['poster'].toString();
+                } else {
+                  posterUrl = _getPosterUrl(data['posterPath']?.toString());
+                }
                 
                 return {
-                  'id': data['movieId'] ?? 0,
+                  'id': data['id'] ?? doc.id,
                   'title': data['title'] ?? 'Unknown',
-                  'posterPath': data['posterPath'],
-                  'poster': posterUrl,
-                  'description': data['description'] ?? '',
-                  'rating': data['rating'] ?? 0.0,
+                  'posterUrl': posterUrl,
+                  'overview': data['overview'] ?? data['description'] ?? '',
+                  'rating': (data['rating'] ?? data['vote_average'] ?? data['voteAverage'] ?? 0.0).toDouble(),
+                  'releaseDate': data['releaseDate'] ?? data['release_date'] ?? '',
+                  'isCustom': data['isCustom'] ?? false,
+                  'trailerUrl': data['trailerUrl'] ?? '',
+                  'runtime': data['runtime'],
+                  'budget': data['budget'],
+                  'revenue': data['revenue'],
+                  'tagline': data['tagline'],
+                  'productions': data['productions'],
                 };
               } catch (e) {
                 print('Error parsing favorite in stream: $e');
                 return {
-                  'id': 0,
+                  'id': doc.id,
                   'title': 'Error loading movie',
-                  'posterPath': null,
-                  'poster': '',
-                  'description': '',
+                  'posterUrl': '',
+                  'overview': '',
                   'rating': 0.0,
+                  'isCustom': false,
                 };
               }
             }).toList();
