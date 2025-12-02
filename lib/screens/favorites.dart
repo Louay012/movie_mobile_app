@@ -83,11 +83,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.favorite_border,
-                    size: 64,
-                    color: Colors.white30,
-                  ),
+                  Icon(Icons.favorite_border, size: 64, color: Colors.white30),
                   const SizedBox(height: 16),
                   const Text(
                     'No favorites yet',
@@ -119,17 +115,27 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 id: favorite['id'] ?? favorite['movieId'] ?? '',
                 title: favorite['title'] ?? 'Untitled',
                 posterUrl: favorite['posterUrl'] ?? favorite['poster'] ?? '',
-                rating: (favorite['rating'] ?? favorite['vote_average'] ?? 0.0).toDouble(),
+                rating: (favorite['rating'] ?? favorite['vote_average'] ?? 0.0)
+                    .toDouble(),
                 overview: favorite['overview'] ?? favorite['description'] ?? '',
                 genreIds: <int>[],
-                releaseDate: favorite['releaseDate'] ?? favorite['release_date'] ?? '',
+                releaseDate:
+                    favorite['releaseDate'] ?? favorite['release_date'] ?? '',
                 isCustom: favorite['isCustom'] == true,
-                runtime: favorite['runtime'] is int ? favorite['runtime'] : int.tryParse(favorite['runtime']?.toString() ?? ''),
-                budget: favorite['budget'] is int ? favorite['budget'] : int.tryParse(favorite['budget']?.toString() ?? ''),
-                revenue: favorite['revenue'] is int ? favorite['revenue'] : int.tryParse(favorite['revenue']?.toString() ?? ''),
+                runtime: favorite['runtime'] is int
+                    ? favorite['runtime']
+                    : int.tryParse(favorite['runtime']?.toString() ?? ''),
+                budget: favorite['budget'] is int
+                    ? favorite['budget']
+                    : int.tryParse(favorite['budget']?.toString() ?? ''),
+                revenue: favorite['revenue'] is int
+                    ? favorite['revenue']
+                    : int.tryParse(favorite['revenue']?.toString() ?? ''),
                 tagline: favorite['tagline']?.toString(),
-                productions: favorite['productions'] is List 
-                    ? List<String>.from(favorite['productions'].map((e) => e.toString()))
+                productions: favorite['productions'] is List
+                    ? List<String>.from(
+                        favorite['productions'].map((e) => e.toString()),
+                      )
                     : null,
                 trailerUrl: favorite['trailerUrl']?.toString(),
               );
@@ -139,12 +145,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 getTrailerUrl: _getTrailerUrl,
                 onRemove: () async {
                   try {
-                    await _favoritesService.removeFromFavorites(movie.id.toString());
+                    await _favoritesService.removeFromFavorites(
+                      movie.id.toString(),
+                    );
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
-                      );
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('Error: $e')));
                     }
                   }
                 },
@@ -275,9 +283,7 @@ class _FavoriteMovieCardState extends State<FavoriteMovieCard> {
                 Positioned.fill(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      color: Colors.black.withOpacity(0.7),
-                    ),
+                    child: Container(color: Colors.black.withOpacity(0.7)),
                   ),
                 ),
               // Bottom gradient
@@ -317,7 +323,7 @@ class _FavoriteMovieCardState extends State<FavoriteMovieCard> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.amber,
+                          color: Colors.deepPurpleAccent,
                         ),
                       ),
                     ),
@@ -334,13 +340,20 @@ class _FavoriteMovieCardState extends State<FavoriteMovieCard> {
                         onTap: _launchTrailer,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
-                            color: _isTrailerHovered ? Colors.amber.shade600 : Colors.amber,
+                            color: _isTrailerHovered
+                                ? Colors.purple.shade700
+                                : Colors.deepPurpleAccent,
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.amber.withOpacity(_isTrailerHovered ? 0.6 : 0.4),
+                                color: Colors.deepPurpleAccent.withOpacity(
+                                  _isTrailerHovered ? 0.6 : 0.4,
+                                ),
                                 blurRadius: _isTrailerHovered ? 16 : 12,
                                 spreadRadius: _isTrailerHovered ? 3 : 2,
                               ),
@@ -349,12 +362,16 @@ class _FavoriteMovieCardState extends State<FavoriteMovieCard> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.play_circle_filled, color: Colors.black, size: 20),
+                              Icon(
+                                Icons.play_circle_filled,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'Watch Trailer',
                                 style: TextStyle(
-                                  color: Colors.black,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -387,11 +404,7 @@ class _FavoriteMovieCardState extends State<FavoriteMovieCard> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 16,
-                        ),
+                        const Icon(Icons.star, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           widget.movie.rating.toStringAsFixed(1),
@@ -438,5 +451,3 @@ class _FavoriteMovieCardState extends State<FavoriteMovieCard> {
     );
   }
 }
-
-  

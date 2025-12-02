@@ -37,17 +37,17 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
       });
       return;
     }
-    
+
     try {
-      final movieId = widget.movie.id is int 
-          ? widget.movie.id 
+      final movieId = widget.movie.id is int
+          ? widget.movie.id
           : int.tryParse(widget.movie.id.toString());
-      
+
       if (movieId == null) {
         setState(() => _isLoadingDetails = false);
         return;
       }
-      
+
       final details = await _movieService.getMovieDetails(movieId);
       if (mounted) {
         setState(() {
@@ -79,7 +79,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
 
   Future<void> _toggleFavorite() async {
     if (_isLoading) return;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -88,11 +88,9 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
       if (_isFavorite) {
         await _favoritesService.removeFromFavorites(widget.movie.id);
       } else {
-        await _favoritesService.addToFavorites(
-          _convertMovieToMovieModel(),
-        );
+        await _favoritesService.addToFavorites(_convertMovieToMovieModel());
       }
-      
+
       if (mounted) {
         setState(() {
           _isFavorite = !_isFavorite;
@@ -148,29 +146,29 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
         }
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No trailer available')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No trailer available')));
       }
       return;
     }
-    
+
     // For TMDB movies, fetch trailer from API
     setState(() {
       _isLoadingTrailer = true;
     });
 
     try {
-      final movieId = widget.movie.id is int 
-          ? widget.movie.id 
+      final movieId = widget.movie.id is int
+          ? widget.movie.id
           : int.tryParse(widget.movie.id.toString());
-      
+
       if (movieId == null) {
         throw Exception('Invalid movie ID');
       }
-      
+
       final trailerKey = await _movieService.getMovieTrailer(movieId);
-      
+
       if (trailerKey != null) {
         final url = Uri.parse('https://www.youtube.com/watch?v=$trailerKey');
         if (await canLaunchUrl(url)) {
@@ -236,28 +234,30 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final isCustomMovie = widget.movie.isCustom;
-    
-    final rating = isCustomMovie 
-        ? widget.movie.rating 
+
+    final rating = isCustomMovie
+        ? widget.movie.rating
         : (_movieDetails?['vote_average'] ?? widget.movie.rating);
     final voteCount = isCustomMovie ? null : _movieDetails?['vote_count'];
-    final runtime = isCustomMovie 
-        ? widget.movie.runtime 
+    final runtime = isCustomMovie
+        ? widget.movie.runtime
         : _movieDetails?['runtime'];
-    final budget = isCustomMovie 
-        ? widget.movie.budget 
+    final budget = isCustomMovie
+        ? widget.movie.budget
         : _movieDetails?['budget'];
-    final revenue = isCustomMovie 
-        ? widget.movie.revenue 
+    final revenue = isCustomMovie
+        ? widget.movie.revenue
         : _movieDetails?['revenue'];
-    final tagline = isCustomMovie 
-        ? widget.movie.tagline 
+    final tagline = isCustomMovie
+        ? widget.movie.tagline
         : _movieDetails?['tagline'];
     final status = isCustomMovie ? 'Released' : _movieDetails?['status'];
-    final originalLanguage = _movieDetails?['original_language']?.toString().toUpperCase();
-    
+    final originalLanguage = _movieDetails?['original_language']
+        ?.toString()
+        .toUpperCase();
+
     final year = _getYear();
-    
+
     List<Map<String, dynamic>>? productionCompanies;
     if (isCustomMovie && widget.movie.productions != null) {
       productionCompanies = widget.movie.productions!
@@ -269,13 +269,11 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
           .map((p) => Map<String, dynamic>.from(p as Map))
           .toList();
     }
-    
+
     List<Map<String, dynamic>>? genres;
     if (_movieDetails?['genres'] != null) {
       final rawList = _movieDetails!['genres'] as List;
-      genres = rawList
-          .map((g) => Map<String, dynamic>.from(g as Map))
-          .toList();
+      genres = rawList.map((g) => Map<String, dynamic>.from(g as Map)).toList();
     } else if (isCustomMovie && widget.movie.productions != null) {
       // For custom movies without genre data, we don't show genres section
       genres = null;
@@ -300,9 +298,8 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                       child: Image.network(
                         widget.movie.posterUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, _, __) => Container(
-                          color: Colors.grey[900],
-                        ),
+                        errorBuilder: (context, _, __) =>
+                            Container(color: Colors.grey[900]),
                       ),
                     ),
                   // Gradient overlay
@@ -369,7 +366,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                     Text(
                       '"$tagline"',
                       style: TextStyle(
-                        color: Colors.amber.shade300,
+                        color: Colors.deepPurpleAccent,
                         fontSize: 16,
                         fontStyle: FontStyle.italic,
                       ),
@@ -416,10 +413,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                         ),
 
                       if (year != null)
-                        _buildInfoChip(
-                          Icons.calendar_today,
-                          year,
-                        ),
+                        _buildInfoChip(Icons.calendar_today, year),
 
                       // Runtime
                       if (runtime != null && runtime is int && runtime > 0)
@@ -430,17 +424,11 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
 
                       // Status
                       if (status != null)
-                        _buildInfoChip(
-                          Icons.info_outline,
-                          status.toString(),
-                        ),
+                        _buildInfoChip(Icons.info_outline, status.toString()),
 
                       // Language
                       if (!isCustomMovie && originalLanguage != null)
-                        _buildInfoChip(
-                          Icons.language,
-                          originalLanguage,
-                        ),
+                        _buildInfoChip(Icons.language, originalLanguage),
                     ],
                   ),
 
@@ -462,15 +450,17 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                             )
                           : const Icon(Icons.play_circle_filled, size: 24),
                       label: Text(
-                        _isLoadingTrailer ? 'Loading Trailer...' : 'Watch Trailer',
+                        _isLoadingTrailer
+                            ? 'Loading Trailer...'
+                            : 'Watch Trailer',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.black,
+                        backgroundColor: Colors.deepPurpleAccent,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -496,28 +486,30 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: genres
-                          .map<Widget>((g) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
+                          .map<Widget>(
+                            (g) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.deepPurpleAccent,
+                                    Colors.purple.shade700,
+                                  ],
                                 ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.amber.shade700,
-                                      Colors.amber.shade900,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                g['name']?.toString() ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                                child: Text(
-                                  g['name']?.toString() ?? '',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ))
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                     const SizedBox(height: 24),
@@ -534,8 +526,10 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    (_movieDetails?['overview']?.toString()) ?? 
-                    (widget.movie.overview.isNotEmpty ? widget.movie.overview : 'No description available.'),
+                    (_movieDetails?['overview']?.toString()) ??
+                        (widget.movie.overview.isNotEmpty
+                            ? widget.movie.overview
+                            : 'No description available.'),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 16,
@@ -544,7 +538,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                   ),
 
                   // Budget & Revenue
-                  if ((budget != null && budget is int && budget > 0) || 
+                  if ((budget != null && budget is int && budget > 0) ||
                       (revenue != null && revenue is int && revenue > 0)) ...[
                     const SizedBox(height: 24),
                     const Text(
@@ -566,8 +560,12 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                               Icons.account_balance_wallet,
                             ),
                           ),
-                        if (budget != null && budget is int && budget > 0 && 
-                            revenue != null && revenue is int && revenue > 0)
+                        if (budget != null &&
+                            budget is int &&
+                            budget > 0 &&
+                            revenue != null &&
+                            revenue is int &&
+                            revenue > 0)
                           const SizedBox(width: 12),
                         if (revenue != null && revenue is int && revenue > 0)
                           Expanded(
@@ -582,7 +580,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                   ],
 
                   // Production Companies
-                  if (productionCompanies != null && 
+                  if (productionCompanies != null &&
                       productionCompanies.isNotEmpty) ...[
                     const SizedBox(height: 24),
                     const Text(
@@ -598,23 +596,25 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: productionCompanies
-                          .map<Widget>((p) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
+                          .map<Widget>(
+                            (p) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[800],
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Text(
+                                p['name']?.toString() ?? '',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[800],
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  p['name']?.toString() ?? '',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ))
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                   ],
@@ -650,10 +650,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),
@@ -678,7 +675,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white54,
+                  color: Colors.deepPurpleAccent,
                   fontSize: 14,
                 ),
               ),

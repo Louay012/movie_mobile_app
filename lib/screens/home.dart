@@ -55,7 +55,7 @@ class Movie {
     final posterPath = json['poster_path']?.toString();
     final poster = json['poster']?.toString();
     final posterUrlField = json['posterUrl']?.toString();
-    
+
     if (posterUrlField != null && posterUrlField.isNotEmpty) {
       posterUrl = posterUrlField;
     } else if (poster != null && poster.isNotEmpty) {
@@ -72,45 +72,60 @@ class Movie {
       }
     }
 
-    final overview = json['description']?.toString() ?? json['overview']?.toString() ?? '';
-    final releaseDate = json['release_date']?.toString() ?? json['releaseDate']?.toString() ?? '';
-    
+    final overview =
+        json['description']?.toString() ?? json['overview']?.toString() ?? '';
+    final releaseDate =
+        json['release_date']?.toString() ??
+        json['releaseDate']?.toString() ??
+        '';
+
     double rating = 0.0;
     if (json['vote_average'] != null) {
-      rating = json['vote_average'] is double 
-          ? json['vote_average'] 
+      rating = json['vote_average'] is double
+          ? json['vote_average']
           : double.tryParse(json['vote_average'].toString()) ?? 0.0;
     } else if (json['voteAverage'] != null) {
-      rating = json['voteAverage'] is double 
-          ? json['voteAverage'] 
+      rating = json['voteAverage'] is double
+          ? json['voteAverage']
           : double.tryParse(json['voteAverage'].toString()) ?? 0.0;
     } else if (json['rating'] != null) {
-      rating = json['rating'] is double 
-          ? json['rating'] 
+      rating = json['rating'] is double
+          ? json['rating']
           : double.tryParse(json['rating'].toString()) ?? 0.0;
     }
 
     final genreIds = (json['genre_ids'] is List)
-        ? List<int>.from((json['genre_ids'] as List).map((e) => e is int ? e : int.tryParse(e.toString()) ?? 0))
+        ? List<int>.from(
+            (json['genre_ids'] as List).map(
+              (e) => e is int ? e : int.tryParse(e.toString()) ?? 0,
+            ),
+          )
         : (json['genreIds'] is List
-              ? List<int>.from((json['genreIds'] as List).map((e) => e is int ? e : int.tryParse(e.toString()) ?? 0))
+              ? List<int>.from(
+                  (json['genreIds'] as List).map(
+                    (e) => e is int ? e : int.tryParse(e.toString()) ?? 0,
+                  ),
+                )
               : <int>[]);
     final isCustom = json['isCustom'] == true;
 
-    final runtime = json['runtime'] is int 
-        ? json['runtime'] 
+    final runtime = json['runtime'] is int
+        ? json['runtime']
         : int.tryParse(json['runtime']?.toString() ?? '');
-    final budget = json['budget'] is int 
-        ? json['budget'] 
+    final budget = json['budget'] is int
+        ? json['budget']
         : int.tryParse(json['budget']?.toString() ?? '');
-    final revenue = json['revenue'] is int 
-        ? json['revenue'] 
+    final revenue = json['revenue'] is int
+        ? json['revenue']
         : int.tryParse(json['revenue']?.toString() ?? '');
     final tagline = json['tagline']?.toString();
     final productions = json['productions'] is List
         ? List<String>.from(json['productions'].map((e) => e.toString()))
         : null;
-    final trailerUrl = json['trailerUrl']?.toString() ?? json['trailer_url']?.toString() ?? json['trailer']?.toString();
+    final trailerUrl =
+        json['trailerUrl']?.toString() ??
+        json['trailer_url']?.toString() ??
+        json['trailer']?.toString();
 
     return Movie(
       id: id,
@@ -207,7 +222,11 @@ class _HomePageState extends State<HomePage> {
             (m) =>
                 m.title.toLowerCase().contains(_query) ||
                 m.overview.toLowerCase().contains(_query) ||
-                m.genreIds.map((id) => id.toString()).join(' ').toLowerCase().contains(_query),
+                m.genreIds
+                    .map((id) => id.toString())
+                    .join(' ')
+                    .toLowerCase()
+                    .contains(_query),
           )
           .toList();
     }
@@ -248,15 +267,15 @@ class _HomePageState extends State<HomePage> {
       final tmdbMovies = rawPage
           .map((e) => Movie.fromJson(e as Map<String, dynamic>))
           .toList();
-      
+
       final movies = [...customMovies, ...tmdbMovies];
-      
+
       currentPage = 2;
       _allMovies = movies;
       _applyFilter();
-      
+
       if (rawPage.length < 20) _hasMore = false;
-      
+
       return movies;
     } catch (e) {
       setState(() {
@@ -268,7 +287,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadMoreMovies() async {
     if (_isLoadingMore || !_hasMore) return;
-    
+
     setState(() {
       _isLoadingMore = true;
       _errorMessage = null;
@@ -288,27 +307,27 @@ class _HomePageState extends State<HomePage> {
       } else {
         final list = List<Movie>.from(_allMovies ?? []);
         list.addAll(nextMovies);
-        
+
         setState(() {
           _allMovies = list;
           _applyFilter();
           currentPage++;
           _isLoadingMore = false;
         });
-        
+
         if (nextMovies.length < 20) {
           setState(() => _hasMore = false);
         }
       }
     } catch (e) {
       debugPrint('Error loading more movies: $e');
-      
+
       if (mounted) {
         setState(() {
           _isLoadingMore = false;
           _errorMessage = _getErrorMessage(e);
         });
-        
+
         _showErrorSnackBar('Could not load more movies. Please try again.');
       }
     }
@@ -316,8 +335,8 @@ class _HomePageState extends State<HomePage> {
 
   String _getErrorMessage(dynamic error) {
     final errorStr = error.toString().toLowerCase();
-    
-    if (errorStr.contains('socketexception') || 
+
+    if (errorStr.contains('socketexception') ||
         errorStr.contains('network') ||
         errorStr.contains('connection')) {
       return 'No internet connection. Please check your network.';
@@ -329,10 +348,12 @@ class _HomePageState extends State<HomePage> {
       return 'API authentication failed. Please contact support.';
     } else if (errorStr.contains('404')) {
       return 'Requested resource not found.';
-    } else if (errorStr.contains('500') || errorStr.contains('502') || errorStr.contains('503')) {
+    } else if (errorStr.contains('500') ||
+        errorStr.contains('502') ||
+        errorStr.contains('503')) {
       return 'Server error. Please try again later.';
     }
-    
+
     return 'An unexpected error occurred. Please try again.';
   }
 
@@ -392,12 +413,12 @@ class _HomePageState extends State<HomePage> {
     if (movie.isCustom) {
       return movie.trailerUrl;
     }
-    
+
     // Check cache first
     if (_trailerCache.containsKey(movie.id)) {
       return _trailerCache[movie.id];
     }
-    
+
     try {
       final movieIdInt = int.tryParse(movie.id.toString());
       if (movieIdInt == null) {
@@ -421,35 +442,32 @@ class _HomePageState extends State<HomePage> {
         crossAxisCount: MediaQuery.of(context).size.width > 900
             ? 5
             : MediaQuery.of(context).size.width > 600
-                ? 4
-                : 3,
+            ? 4
+            : 3,
         childAspectRatio: 0.65,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final movie = movies[index];
-          final isFavorite = _favoriteIds.contains(movie.id.toString());
-          return MovieCard(
-            movie: movie,
-            isFavorite: isFavorite,
-            getTrailerUrl: _getTrailerUrl,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => MovieDetailsPage(movie: movie),
-                ),
-              ).then((_) {
-                _loadFavorites();
-              });
-            },
-            onFavoriteToggle: () => _toggleFavorite(movie),
-          );
-        },
-        childCount: movies.length,
-      ),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final movie = movies[index];
+        final isFavorite = _favoriteIds.contains(movie.id.toString());
+        return MovieCard(
+          movie: movie,
+          isFavorite: isFavorite,
+          getTrailerUrl: _getTrailerUrl,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MovieDetailsPage(movie: movie),
+              ),
+            ).then((_) {
+              _loadFavorites();
+            });
+          },
+          onFavoriteToggle: () => _toggleFavorite(movie),
+        );
+      }, childCount: movies.length),
     );
   }
 
@@ -467,9 +485,7 @@ class _HomePageState extends State<HomePage> {
       _loadFavorites();
     } catch (e) {
       debugPrint('Favorite toggle error: $e');
-      _showErrorSnackBar(
-        'Failed to update favorites. Please try again.'
-      );
+      _showErrorSnackBar('Failed to update favorites. Please try again.');
     }
   }
 
@@ -515,13 +531,18 @@ class _HomePageState extends State<HomePage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey.shade400)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey.shade400),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Sign Out'),
           ),
@@ -548,7 +569,7 @@ class _HomePageState extends State<HomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.people),
-            color: Colors.amber,
+            color: Colors.deepPurpleAccent,
             tooltip: 'Find Matches',
             onPressed: () {
               Navigator.pushNamed(context, '/matching');
@@ -562,7 +583,9 @@ class _HomePageState extends State<HomePage> {
           PopupMenuButton<String>(
             icon: const Icon(Icons.person),
             color: Colors.grey.shade900,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             onSelected: (value) {
               if (value == 'profile') {
                 Navigator.pushNamed(context, '/profile');
@@ -575,9 +598,16 @@ class _HomePageState extends State<HomePage> {
                 value: 'profile',
                 child: Row(
                   children: [
-                    Icon(Icons.person_outline, color: Colors.amber, size: 20),
+                    Icon(
+                      Icons.person_outline,
+                      color: Colors.deepPurpleAccent,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
-                    const Text('Profile', style: TextStyle(color: Colors.white)),
+                    const Text(
+                      'Profile',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ],
                 ),
               ),
@@ -587,7 +617,10 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Icon(Icons.logout, color: Colors.red.shade400, size: 20),
                     const SizedBox(width: 12),
-                    Text('Sign Out', style: TextStyle(color: Colors.red.shade400)),
+                    Text(
+                      'Sign Out',
+                      style: TextStyle(color: Colors.red.shade400),
+                    ),
                   ],
                 ),
               ),
@@ -622,20 +655,29 @@ class _HomePageState extends State<HomePage> {
               style: const TextStyle(color: Colors.white),
             ),
           ),
-          
-          if (_errorMessage != null && _allMovies != null && _allMovies!.isNotEmpty)
+
+          if (_errorMessage != null &&
+              _allMovies != null &&
+              _allMovies!.isNotEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: Colors.red.shade900.withOpacity(0.3),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber, color: Colors.orange, size: 20),
+                  const Icon(
+                    Icons.warning_amber,
+                    color: Colors.deepPurpleAccent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   TextButton(
@@ -645,7 +687,7 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-          
+
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
@@ -703,7 +745,7 @@ class _HomePageState extends State<HomePage> {
                   final source = (_query.isNotEmpty)
                       ? _filtered
                       : (_allMovies ?? []);
-                      
+
                   if (source.isEmpty) {
                     return ListView(
                       children: [
@@ -716,7 +758,7 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 20),
                         Center(
                           child: Text(
-                            _query.isNotEmpty 
+                            _query.isNotEmpty
                                 ? 'No movies found for "$_query"'
                                 : 'No movies available',
                             style: const TextStyle(
@@ -824,7 +866,8 @@ class _MovieCardState extends State<MovieCard> {
   @override
   Widget build(BuildContext context) {
     final hasTrailer = _trailerUrl != null && _trailerUrl!.isNotEmpty;
-    final showTrailerButton = _isHovered && (_isLoadingTrailer || hasTrailer || !_trailerLoaded);
+    final showTrailerButton =
+        _isHovered && (_isLoadingTrailer || hasTrailer || !_trailerLoaded);
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -868,9 +911,7 @@ class _MovieCardState extends State<MovieCard> {
                 Positioned.fill(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      color: Colors.black.withOpacity(0.7),
-                    ),
+                    child: Container(color: Colors.black.withOpacity(0.7)),
                   ),
                 ),
               Positioned(
@@ -908,7 +949,7 @@ class _MovieCardState extends State<MovieCard> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.amber,
+                          color: Colors.deepPurpleAccent,
                         ),
                       ),
                     ),
@@ -925,13 +966,20 @@ class _MovieCardState extends State<MovieCard> {
                         onTap: _launchTrailer,
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
-                            color: _isTrailerHovered ? Colors.amber.shade600 : Colors.amber,
+                            color: _isTrailerHovered
+                                ? Colors.purple.shade700
+                                : Colors.deepPurpleAccent,
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.amber.withOpacity(_isTrailerHovered ? 0.6 : 0.4),
+                                color: Colors.deepPurpleAccent.withOpacity(
+                                  _isTrailerHovered ? 0.6 : 0.4,
+                                ),
                                 blurRadius: _isTrailerHovered ? 16 : 12,
                                 spreadRadius: _isTrailerHovered ? 3 : 2,
                               ),
@@ -940,12 +988,16 @@ class _MovieCardState extends State<MovieCard> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.play_circle_filled, color: Colors.black, size: 20),
+                              Icon(
+                                Icons.play_circle_filled,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'Watch Trailer',
                                 style: TextStyle(
-                                  color: Colors.black,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 12,
                                 ),
@@ -977,11 +1029,7 @@ class _MovieCardState extends State<MovieCard> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 16,
-                        ),
+                        const Icon(Icons.star, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           widget.movie.rating.toStringAsFixed(1),
@@ -993,15 +1041,18 @@ class _MovieCardState extends State<MovieCard> {
                         const Spacer(),
                         if (widget.movie.isCustom)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: Colors.amber,
+                              color: Colors.deepPurpleAccent,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'NEW',
                               style: TextStyle(
-                                color: Colors.black,
+                                color: Colors.white,
                                 fontSize: 8,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1024,7 +1075,9 @@ class _MovieCardState extends State<MovieCard> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+                      widget.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
                       color: widget.isFavorite ? Colors.red : Colors.white,
                       size: 20,
                     ),

@@ -25,7 +25,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You cannot deactivate your own account'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Colors.deepPurpleAccent,
         ),
       );
       return;
@@ -35,7 +35,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You cannot deactivate administrator accounts'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Colors.deepPurpleAccent,
         ),
       );
       return;
@@ -43,7 +43,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
     final newStatus = !user.isActive;
     final action = newStatus ? 'activate' : 'deactivate';
-    
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -80,7 +80,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('User ${newStatus ? 'activated' : 'deactivated'} successfully'),
+              content: Text(
+                'User ${newStatus ? 'activated' : 'deactivated'} successfully',
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -88,10 +90,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: $e'),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
           );
         }
       } finally {
@@ -101,17 +100,14 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   }
 
   void _showAddAdminDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => const AddAdminDialog(),
-    );
+    showDialog(context: context, builder: (context) => const AddAdminDialog());
   }
 
   ImageProvider? _getUserImage(String? photoURL) {
     if (photoURL == null || photoURL.isEmpty) {
       return null;
     }
-    
+
     if (photoURL.startsWith('http')) {
       return NetworkImage(photoURL);
     } else {
@@ -144,11 +140,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddAdminDialog,
-        backgroundColor: Colors.amber,
-        icon: const Icon(Icons.person_add, color: Colors.black),
+        backgroundColor: Colors.deepPurpleAccent,
+        icon: const Icon(Icons.person_add, color: Colors.white),
         label: const Text(
           'Add Admin',
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: Stack(
@@ -165,7 +161,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         'Error loading users',
@@ -177,7 +177,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               }
 
               final allUsers = snapshot.data ?? [];
-              
+
               if (allUsers.isEmpty) {
                 return const Center(
                   child: Text(
@@ -197,18 +197,18 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     _buildSectionHeader(
                       'Administrators',
                       Icons.admin_panel_settings,
-                      Colors.amber,
+                      Colors.deepPurpleAccent,
                       admins.length,
                     ),
                     const SizedBox(height: 12),
                     ...admins.map((admin) => _buildAdminCard(admin)),
                     const SizedBox(height: 24),
                   ],
-                  
+
                   _buildSectionHeader(
                     'Users',
                     Icons.people,
-                    Colors.blue,
+                    Colors.purple,
                     regularUsers.length,
                   ),
                   const SizedBox(height: 12),
@@ -243,7 +243,12 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon, Color color, int count) {
+  Widget _buildSectionHeader(
+    String title,
+    IconData icon,
+    Color color,
+    int count,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -274,10 +279,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ),
             child: Text(
               '$count',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -288,7 +290,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   Widget _buildAdminCard(UserModel admin) {
     final isCurrentUser = admin.uid == _authService.getCurrentUserId();
     final userImage = _getUserImage(admin.photoURL);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -299,7 +301,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.amber.withOpacity(0.5),
+          color: Colors.deepPurpleAccent.withOpacity(0.5),
           width: 2,
         ),
       ),
@@ -330,14 +332,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               child: Container(
                 padding: const EdgeInsets.all(2),
                 decoration: const BoxDecoration(
-                  color: Colors.amber,
+                  color: Colors.deepPurpleAccent,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.star,
-                  size: 14,
-                  color: Colors.black,
-                ),
+                child: const Icon(Icons.star, size: 14, color: Colors.white),
               ),
             ),
           ],
@@ -357,20 +355,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 2,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Colors.amber, Colors.orange],
+                  colors: [Colors.deepPurpleAccent, Colors.purple],
                 ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
                 'ADMIN',
                 style: TextStyle(
-                  color: Colors.black,
+                  color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -379,10 +374,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             if (isCurrentUser)
               Container(
                 margin: const EdgeInsets.only(left: 4),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.blue.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -413,7 +405,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   Widget _buildUserCard(UserModel user) {
     final isCurrentUser = user.uid == _authService.getCurrentUserId();
     final userImage = _getUserImage(user.photoURL);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -463,11 +455,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.block,
-                    size: 14,
-                    color: Colors.white,
-                  ),
+                  child: const Icon(Icons.block, size: 14, color: Colors.white),
                 ),
               ),
           ],
@@ -481,9 +469,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   color: user.isActive ? Colors.white : Colors.grey,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  decoration: user.isActive
-                      ? null
-                      : TextDecoration.lineThrough,
+                  decoration: user.isActive ? null : TextDecoration.lineThrough,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -491,10 +477,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             if (isCurrentUser)
               Container(
                 margin: const EdgeInsets.only(left: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.blue.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
@@ -522,18 +505,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             const SizedBox(height: 4),
             Row(
               children: [
-                Icon(
-                  Icons.cake_outlined,
-                  size: 14,
-                  color: Colors.grey[600],
-                ),
+                Icon(Icons.cake_outlined, size: 14, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
                   '${user.age} years old',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
                 const SizedBox(width: 16),
                 Container(
@@ -587,7 +563,7 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
   final _passwordController = TextEditingController();
   final AdminService _adminService = AdminService();
   final StorageService _storageService = StorageService();
-  
+
   DateTime? _selectedBirthDate;
   Uint8List? _selectedImage;
   String? _uploadedImageBase64;
@@ -610,7 +586,7 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
       maxHeight: 512,
       imageQuality: 75,
     );
-    
+
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -629,8 +605,8 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
         return Theme(
           data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: Colors.amber,
-              onPrimary: Colors.black,
+              primary: Colors.deepPurpleAccent,
+              onPrimary: Colors.white,
               surface: Color(0xFF1E1E1E),
               onSurface: Colors.white,
             ),
@@ -639,7 +615,7 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
         );
       },
     );
-    
+
     if (picked != null) {
       setState(() {
         _selectedBirthDate = picked;
@@ -663,7 +639,9 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
 
     try {
       if (_selectedImage != null) {
-        _uploadedImageBase64 = await _storageService.imageToBase64(_selectedImage);
+        _uploadedImageBase64 = await _storageService.imageToBase64(
+          _selectedImage,
+        );
       }
 
       await _adminService.createAdminAccount(
@@ -686,10 +664,7 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -716,12 +691,12 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.2),
+                        color: Colors.deepPurpleAccent.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
                         Icons.admin_panel_settings,
-                        color: Colors.amber,
+                        color: Colors.deepPurpleAccent,
                         size: 28,
                       ),
                     ),
@@ -770,13 +745,13 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
-                              color: Colors.amber,
+                              color: Colors.deepPurpleAccent,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
                               Icons.camera_alt,
                               size: 18,
-                              color: Colors.black,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -800,7 +775,10 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                   decoration: InputDecoration(
                     labelText: 'Full Name',
                     labelStyle: const TextStyle(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: Colors.grey,
+                    ),
                     filled: true,
                     fillColor: Colors.grey[900],
                     border: OutlineInputBorder(
@@ -809,7 +787,9 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.amber),
+                      borderSide: const BorderSide(
+                        color: Colors.deepPurpleAccent,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -829,7 +809,10 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                   decoration: InputDecoration(
                     labelText: 'Email',
                     labelStyle: const TextStyle(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
+                    prefixIcon: const Icon(
+                      Icons.email_outlined,
+                      color: Colors.grey,
+                    ),
                     filled: true,
                     fillColor: Colors.grey[900],
                     border: OutlineInputBorder(
@@ -838,14 +821,18 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.amber),
+                      borderSide: const BorderSide(
+                        color: Colors.deepPurpleAccent,
+                      ),
                     ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -861,13 +848,19 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                   decoration: InputDecoration(
                     labelText: 'Password',
                     labelStyle: const TextStyle(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: Colors.grey,
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
                         color: Colors.grey,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                     filled: true,
                     fillColor: Colors.grey[900],
@@ -877,7 +870,9 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.amber),
+                      borderSide: const BorderSide(
+                        color: Colors.deepPurpleAccent,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -917,7 +912,11 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.calendar_today, color: Colors.amber, size: 20),
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Colors.deepPurpleAccent,
+                          size: 20,
+                        ),
                       ],
                     ),
                   ),
@@ -928,13 +927,14 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _createAdmin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.amber,
-                    foregroundColor: Colors.black,
+                    backgroundColor: Colors.deepPurpleAccent,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    disabledBackgroundColor: Colors.amber.withOpacity(0.5),
+                    disabledBackgroundColor: Colors.deepPurpleAccent
+                        .withOpacity(0.5),
                   ),
                   child: _isLoading
                       ? const SizedBox(
@@ -942,7 +942,7 @@ class _AddAdminDialogState extends State<AddAdminDialog> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.black,
+                            color: Colors.white,
                           ),
                         )
                       : const Text(

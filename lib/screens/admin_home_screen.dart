@@ -18,7 +18,7 @@ class AdminHomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
-            color: Colors.amber,
+            color: Colors.deepPurpleAccent,
             tooltip: 'Admin Profile',
             onPressed: () => Navigator.pushNamed(context, '/admin/profile'),
           ),
@@ -31,7 +31,10 @@ class AdminHomeScreen extends StatelessWidget {
                 context: context,
                 builder: (context) => AlertDialog(
                   backgroundColor: Colors.grey.shade900,
-                  title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+                  title: const Text(
+                    'Sign Out',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   content: const Text(
                     'Are you sure you want to sign out?',
                     style: TextStyle(color: Colors.grey),
@@ -53,17 +56,17 @@ class AdminHomeScreen extends StatelessWidget {
               );
               if (confirm == true && context.mounted) {
                 await authService.signOut();
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/welcome',
-                  (route) => false,
-                );
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/welcome', (route) => false);
               }
             },
           ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView( // Added SingleChildScrollView to prevent overflow
+        child: SingleChildScrollView(
+          // Added SingleChildScrollView to prevent overflow
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -74,7 +77,7 @@ class AdminHomeScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.amber.shade800, Colors.orange.shade900],
+                      colors: [Colors.deepPurpleAccent, Colors.purple.shade700],
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -120,7 +123,7 @@ class AdminHomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 30),
-                
+
                 // Section Title
                 const Text(
                   'Management',
@@ -131,7 +134,7 @@ class AdminHomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
+
                 Row(
                   children: [
                     Expanded(
@@ -140,8 +143,9 @@ class AdminHomeScreen extends StatelessWidget {
                         icon: Icons.people,
                         title: 'Users',
                         subtitle: 'Manage user accounts',
-                        color: Colors.blue,
-                        onTap: () => Navigator.pushNamed(context, '/admin/users'),
+                        color: Colors.deepPurpleAccent,
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/admin/users'),
                       ),
                     ),
                     const SizedBox(width: 15),
@@ -152,7 +156,8 @@ class AdminHomeScreen extends StatelessWidget {
                         title: 'Movies',
                         subtitle: 'Add custom movies',
                         color: Colors.purple,
-                        onTap: () => Navigator.pushNamed(context, '/admin/movies'),
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/admin/movies'),
                       ),
                     ),
                   ],
@@ -193,11 +198,7 @@ class AdminHomeScreen extends StatelessWidget {
                 color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                size: 35,
-                color: color,
-              ),
+              child: Icon(icon, size: 35, color: color),
             ),
             const SizedBox(height: 15),
             Text(
@@ -212,10 +213,7 @@ class AdminHomeScreen extends StatelessWidget {
             Flexible(
               child: Text(
                 subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
                 maxLines: 2,

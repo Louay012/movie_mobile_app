@@ -11,12 +11,9 @@ class AdminMoviesScreen extends StatefulWidget {
 
 class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
   final AdminService _adminService = AdminService();
-  
+
   void _showAddMovieDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => const _AddMovieDialog(),
-    );
+    showDialog(context: context, builder: (context) => const _AddMovieDialog());
   }
 
   void _showEditMovieDialog(Map<String, dynamic> movie) {
@@ -39,7 +36,10 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Movie', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Delete Movie',
+          style: TextStyle(color: Colors.white),
+        ),
         content: Text(
           'Are you sure you want to delete "$title"?',
           style: const TextStyle(color: Colors.white70),
@@ -98,9 +98,12 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddMovieDialog,
-        backgroundColor: Colors.amber,
-        icon: const Icon(Icons.add, color: Colors.black),
-        label: const Text('Add Movie', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.deepPurpleAccent,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Add Movie',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _adminService.getCustomMoviesStream(),
@@ -132,7 +135,11 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.movie_creation_outlined, size: 80, color: Colors.grey[700]),
+                  Icon(
+                    Icons.movie_creation_outlined,
+                    size: 80,
+                    color: Colors.grey[700],
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No custom movies yet',
@@ -154,7 +161,7 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
             itemBuilder: (context, index) {
               final movie = movies[index];
               final genres = (movie['genres'] as List?)?.join(', ') ?? '';
-              
+
               return GestureDetector(
                 onTap: () => _showMovieDetailsDialog(movie),
                 child: Container(
@@ -177,7 +184,9 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                           topLeft: Radius.circular(16),
                           bottomLeft: Radius.circular(16),
                         ),
-                        child: movie['poster'] != null && movie['poster'].isNotEmpty
+                        child:
+                            movie['poster'] != null &&
+                                movie['poster'].isNotEmpty
                             ? Image.network(
                                 movie['poster'],
                                 width: 100,
@@ -187,14 +196,22 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                                   width: 100,
                                   height: 150,
                                   color: Colors.grey[800],
-                                  child: const Icon(Icons.movie, color: Colors.grey, size: 40),
+                                  child: const Icon(
+                                    Icons.movie,
+                                    color: Colors.grey,
+                                    size: 40,
+                                  ),
                                 ),
                               )
                             : Container(
                                 width: 100,
                                 height: 150,
                                 color: Colors.grey[800],
-                                child: const Icon(Icons.movie, color: Colors.grey, size: 40),
+                                child: const Icon(
+                                  Icons.movie,
+                                  color: Colors.grey,
+                                  size: 40,
+                                ),
                               ),
                       ),
                       // Movie Details
@@ -217,17 +234,27 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                               const SizedBox(height: 8),
                               Row(
                                 children: [
-                                  const Icon(Icons.star, color: Colors.amber, size: 16),
+                                  const Icon(
+                                    Icons.star,
+                                    color: Colors.deepPurpleAccent,
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 4),
                                   Text(
                                     '${(movie['voteAverage'] ?? 0.0).toStringAsFixed(1)}',
-                                    style: const TextStyle(color: Colors.amber, fontSize: 14),
+                                    style: const TextStyle(
+                                      color: Colors.deepPurpleAccent,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   if (movie['releaseDate'] != null)
                                     Text(
                                       movie['releaseDate'],
-                                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12,
+                                      ),
                                     ),
                                 ],
                               ),
@@ -235,7 +262,10 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                               if (genres.isNotEmpty)
                                 Text(
                                   genres,
-                                  style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 12,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -244,16 +274,28 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   IconButton(
-                                    onPressed: () => _showEditMovieDialog(movie),
-                                    icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                                    onPressed: () =>
+                                        _showEditMovieDialog(movie),
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.blue,
+                                      size: 20,
+                                    ),
                                     tooltip: 'Edit',
                                     constraints: const BoxConstraints(),
                                     padding: const EdgeInsets.all(8),
                                   ),
                                   const SizedBox(width: 8),
                                   IconButton(
-                                    onPressed: () => _deleteMovie(movie['id'], movie['title'] ?? ''),
-                                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                    onPressed: () => _deleteMovie(
+                                      movie['id'],
+                                      movie['title'] ?? '',
+                                    ),
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                      size: 20,
+                                    ),
                                     tooltip: 'Delete',
                                     constraints: const BoxConstraints(),
                                     padding: const EdgeInsets.all(8),
@@ -297,7 +339,7 @@ class _MovieDetailsDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final genres = (movie['genres'] as List?)?.join(', ') ?? 'N/A';
     final productions = (movie['productions'] as List?)?.join(', ') ?? '';
-    
+
     return Dialog(
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -311,7 +353,9 @@ class _MovieDetailsDialog extends StatelessWidget {
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                   child: movie['poster'] != null && movie['poster'].isNotEmpty
                       ? Image.network(
                           movie['poster'],
@@ -322,14 +366,22 @@ class _MovieDetailsDialog extends StatelessWidget {
                             width: double.infinity,
                             height: 200,
                             color: Colors.grey[800],
-                            child: const Icon(Icons.movie, color: Colors.grey, size: 80),
+                            child: const Icon(
+                              Icons.movie,
+                              color: Colors.grey,
+                              size: 80,
+                            ),
                           ),
                         )
                       : Container(
                           width: double.infinity,
                           height: 200,
                           color: Colors.grey[800],
-                          child: const Icon(Icons.movie, color: Colors.grey, size: 80),
+                          child: const Icon(
+                            Icons.movie,
+                            color: Colors.grey,
+                            size: 80,
+                          ),
                         ),
                 ),
                 // Gradient overlay
@@ -343,10 +395,7 @@ class _MovieDetailsDialog extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          const Color(0xFF1E1E1E),
-                        ],
+                        colors: [Colors.transparent, const Color(0xFF1E1E1E)],
                       ),
                     ),
                   ),
@@ -363,7 +412,11 @@ class _MovieDetailsDialog extends StatelessWidget {
                         color: Colors.black54,
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -385,7 +438,7 @@ class _MovieDetailsDialog extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             // Content
             Flexible(
               child: SingleChildScrollView(
@@ -397,20 +450,27 @@ class _MovieDetailsDialog extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.2),
+                            color: Colors.deepPurpleAccent.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 18),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.deepPurpleAccent,
+                                size: 18,
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 '${(movie['voteAverage'] ?? 0.0).toStringAsFixed(1)}',
                                 style: const TextStyle(
-                                  color: Colors.amber,
+                                  color: Colors.deepPurpleAccent,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -420,7 +480,10 @@ class _MovieDetailsDialog extends StatelessWidget {
                         const SizedBox(width: 12),
                         if (movie['releaseDate'] != null)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.grey.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8),
@@ -428,7 +491,11 @@ class _MovieDetailsDialog extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.calendar_today, color: Colors.grey, size: 16),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  color: Colors.grey,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 4),
                                 Text(
                                   movie['releaseDate'],
@@ -440,12 +507,16 @@ class _MovieDetailsDialog extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     if (movie['runtime'] != null && movie['runtime'] > 0)
-                      _buildInfoSection('Runtime', '${movie['runtime']} minutes'),
-                    
+                      _buildInfoSection(
+                        'Runtime',
+                        '${movie['runtime']} minutes',
+                      ),
+
                     // Tagline
-                    if (movie['tagline'] != null && movie['tagline'].isNotEmpty) ...[
+                    if (movie['tagline'] != null &&
+                        movie['tagline'].isNotEmpty) ...[
                       Text(
                         '"${movie['tagline']}"',
                         style: TextStyle(
@@ -456,12 +527,13 @@ class _MovieDetailsDialog extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    
+
                     // Genres
                     _buildInfoSection('Genres', genres),
-                    
+
                     // Overview
-                    if (movie['overview'] != null && movie['overview'].isNotEmpty) ...[
+                    if (movie['overview'] != null &&
+                        movie['overview'].isNotEmpty) ...[
                       const Text(
                         'Overview',
                         style: TextStyle(
@@ -481,18 +553,25 @@ class _MovieDetailsDialog extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    
+
                     // Budget & Revenue
                     if (movie['budget'] != null && movie['budget'] > 0)
-                      _buildInfoSection('Budget', '\$${_formatNumber(movie['budget'])}'),
+                      _buildInfoSection(
+                        'Budget',
+                        '\$${_formatNumber(movie['budget'])}',
+                      ),
                     if (movie['revenue'] != null && movie['revenue'] > 0)
-                      _buildInfoSection('Revenue', '\$${_formatNumber(movie['revenue'])}'),
-                    
+                      _buildInfoSection(
+                        'Revenue',
+                        '\$${_formatNumber(movie['revenue'])}',
+                      ),
+
                     if (productions.isNotEmpty)
                       _buildInfoSection('Production', productions),
-                    
+
                     // Trailer link
-                    if (movie['trailerUrl'] != null && movie['trailerUrl'].isNotEmpty)
+                    if (movie['trailerUrl'] != null &&
+                        movie['trailerUrl'].isNotEmpty)
                       _buildInfoSection('Trailer', movie['trailerUrl']),
                   ],
                 ),
@@ -514,19 +593,13 @@ class _MovieDetailsDialog extends StatelessWidget {
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white, fontSize: 14),
             ),
           ),
         ],
@@ -537,7 +610,7 @@ class _MovieDetailsDialog extends StatelessWidget {
 
 class _AddMovieDialog extends StatefulWidget {
   final Map<String, dynamic>? movie;
-  
+
   const _AddMovieDialog({this.movie});
 
   @override
@@ -547,7 +620,7 @@ class _AddMovieDialog extends StatefulWidget {
 class _AddMovieDialogState extends State<_AddMovieDialog> {
   final _formKey = GlobalKey<FormState>();
   final AdminService _adminService = AdminService();
-  
+
   late TextEditingController _titleController;
   late TextEditingController _overviewController;
   late TextEditingController _posterController;
@@ -559,19 +632,27 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
   late TextEditingController _revenueController;
   late TextEditingController _taglineController;
   late TextEditingController _productionsController;
-  
+
   DateTime? _selectedReleaseDate;
-  
+
   bool _isLoading = false;
   bool get _isEditing => widget.movie != null;
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.movie?['title'] ?? '');
-    _overviewController = TextEditingController(text: widget.movie?['overview'] ?? '');
-    _posterController = TextEditingController(text: widget.movie?['poster'] ?? '');
-    _trailerController = TextEditingController(text: widget.movie?['trailerUrl'] ?? '');
+    _titleController = TextEditingController(
+      text: widget.movie?['title'] ?? '',
+    );
+    _overviewController = TextEditingController(
+      text: widget.movie?['overview'] ?? '',
+    );
+    _posterController = TextEditingController(
+      text: widget.movie?['poster'] ?? '',
+    );
+    _trailerController = TextEditingController(
+      text: widget.movie?['trailerUrl'] ?? '',
+    );
     _ratingController = TextEditingController(
       text: widget.movie?['voteAverage']?.toString() ?? '',
     );
@@ -587,11 +668,13 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
     _revenueController = TextEditingController(
       text: widget.movie?['revenue']?.toString() ?? '',
     );
-    _taglineController = TextEditingController(text: widget.movie?['tagline'] ?? '');
+    _taglineController = TextEditingController(
+      text: widget.movie?['tagline'] ?? '',
+    );
     _productionsController = TextEditingController(
       text: (widget.movie?['productions'] as List?)?.join(', ') ?? '',
     );
-    
+
     if (widget.movie?['releaseDate'] != null) {
       try {
         _selectedReleaseDate = DateTime.parse(widget.movie!['releaseDate']);
@@ -635,8 +718,8 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: Colors.amber,
-              onPrimary: Colors.black,
+              primary: Colors.deepPurpleAccent,
+              onPrimary: Colors.white,
               surface: Color(0xFF1E1E1E),
               onSurface: Colors.white,
             ),
@@ -655,7 +738,7 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
 
   Future<void> _saveMovie() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_selectedReleaseDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -674,14 +757,15 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
           .map((g) => g.trim())
           .where((g) => g.isNotEmpty)
           .toList();
-      
+
       final productions = _productionsController.text
           .split(',')
           .map((p) => p.trim())
           .where((p) => p.isNotEmpty)
           .toList();
-      
-      final releaseDate = '${_selectedReleaseDate!.year}-${_selectedReleaseDate!.month.toString().padLeft(2, '0')}-${_selectedReleaseDate!.day.toString().padLeft(2, '0')}';
+
+      final releaseDate =
+          '${_selectedReleaseDate!.year}-${_selectedReleaseDate!.month.toString().padLeft(2, '0')}-${_selectedReleaseDate!.day.toString().padLeft(2, '0')}';
 
       if (_isEditing) {
         await _adminService.updateMovie(widget.movie!['id'], {
@@ -720,7 +804,11 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isEditing ? 'Movie updated successfully' : 'Movie added successfully'),
+            content: Text(
+              _isEditing
+                  ? 'Movie updated successfully'
+                  : 'Movie added successfully',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -759,7 +847,7 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                 children: [
                   Icon(
                     _isEditing ? Icons.edit : Icons.movie_creation,
-                    color: Colors.amber,
+                    color: Colors.deepPurpleAccent,
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -778,7 +866,7 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                 ],
               ),
             ),
-            
+
             // Form
             Flexible(
               child: SingleChildScrollView(
@@ -792,34 +880,38 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                         controller: _titleController,
                         label: 'Title *',
                         hint: 'Enter movie title',
-                        validator: (v) => v?.isEmpty ?? true ? 'Title is required' : null,
+                        validator: (v) =>
+                            v?.isEmpty ?? true ? 'Title is required' : null,
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
                         controller: _overviewController,
                         label: 'Overview *',
                         hint: 'Enter movie description',
                         maxLines: 3,
-                        validator: (v) => v?.isEmpty ?? true ? 'Overview is required' : null,
+                        validator: (v) =>
+                            v?.isEmpty ?? true ? 'Overview is required' : null,
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
                         controller: _posterController,
                         label: 'Poster URL *',
                         hint: 'https://example.com/poster.jpg',
-                        validator: (v) => v?.isEmpty ?? true ? 'Poster URL is required' : null,
+                        validator: (v) => v?.isEmpty ?? true
+                            ? 'Poster URL is required'
+                            : null,
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
                         controller: _trailerController,
                         label: 'Trailer URL',
                         hint: 'https://youtube.com/watch?v=...',
                       ),
                       const SizedBox(height: 16),
-                      
+
                       Row(
                         children: [
                           Expanded(
@@ -827,15 +919,22 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                               controller: _ratingController,
                               label: 'Rating (0-10) *',
                               hint: '8.5',
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               inputFormatters: [
-                                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'^\d*\.?\d*'),
+                                ),
                               ],
                               validator: (v) {
-                                if (v?.isEmpty ?? true) return 'Rating is required';
+                                if (v?.isEmpty ?? true)
+                                  return 'Rating is required';
                                 final rating = double.tryParse(v!);
                                 if (rating == null) return 'Invalid number';
-                                if (rating < 0 || rating > 10) return 'Must be 0-10';
+                                if (rating < 0 || rating > 10)
+                                  return 'Must be 0-10';
                                 return null;
                               },
                             ),
@@ -856,7 +955,10 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                                 InkWell(
                                   onTap: _selectReleaseDate,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.white.withOpacity(0.05),
                                       borderRadius: BorderRadius.circular(12),
@@ -870,13 +972,18 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                                                 ? '${_selectedReleaseDate!.year}-${_selectedReleaseDate!.month.toString().padLeft(2, '0')}-${_selectedReleaseDate!.day.toString().padLeft(2, '0')}'
                                                 : 'Select date',
                                             style: TextStyle(
-                                              color: _selectedReleaseDate != null
+                                              color:
+                                                  _selectedReleaseDate != null
                                                   ? Colors.white
                                                   : Colors.grey,
                                             ),
                                           ),
                                         ),
-                                        const Icon(Icons.calendar_today, color: Colors.amber, size: 20),
+                                        const Icon(
+                                          Icons.calendar_today,
+                                          color: Colors.deepPurpleAccent,
+                                          size: 20,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -887,28 +994,28 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
                         controller: _genresController,
                         label: 'Genres (comma separated)',
                         hint: 'Action, Drama, Sci-Fi',
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
                         controller: _productionsController,
                         label: 'Production Companies (comma separated)',
                         hint: 'Warner Bros, Paramount, Universal',
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
                         controller: _taglineController,
                         label: 'Tagline',
                         hint: 'Enter movie tagline',
                       ),
                       const SizedBox(height: 16),
-                      
+
                       Row(
                         children: [
                           Expanded(
@@ -917,7 +1024,9 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                               label: 'Runtime (minutes)',
                               hint: '120',
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -927,26 +1036,30 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                               label: 'Budget (\$)',
                               hint: '150000000',
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
                         controller: _revenueController,
                         label: 'Revenue (\$)',
                         hint: '500000000',
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-            
+
             // Actions
             Container(
               padding: const EdgeInsets.all(20),
@@ -958,15 +1071,21 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _saveMovie,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      backgroundColor: Colors.deepPurpleAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
                     child: _isLoading
                         ? const SizedBox(
@@ -974,7 +1093,7 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.black,
+                              color: Colors.white,
                             ),
                           )
                         : Text(_isEditing ? 'Update' : 'Add Movie'),
@@ -1002,10 +1121,7 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -1030,7 +1146,7 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Colors.amber),
+              borderSide: const BorderSide(color: Colors.deepPurpleAccent),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),

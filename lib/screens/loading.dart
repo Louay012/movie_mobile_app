@@ -20,9 +20,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
   }
 
   Future<void> _checkAuthStatus() async {
-    await Future.delayed(
-      const Duration(seconds: AppConstants.splashDuration),
-    );
+    await Future.delayed(const Duration(seconds: AppConstants.splashDuration));
 
     if (!mounted) return;
 
@@ -34,14 +32,14 @@ class _LoadingScreenState extends State<LoadingScreen> {
               .collection('users')
               .doc(userId)
               .get();
-          
+
           if (doc.exists) {
             final data = doc.data();
             final isActive = data?['isActive'] ?? true;
             final isAdmin = data?['isAdmin'] ?? false;
-            
+
             if (!mounted) return;
-            
+
             if (!isActive) {
               Navigator.pushReplacementNamed(context, '/deactivated');
             } else if (isAdmin) {
@@ -76,13 +74,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [Colors.amber.shade600, Colors.orange.shade800],
+                  colors: [Colors.deepPurpleAccent, Colors.purple.shade700],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.amber.withOpacity(0.4),
+                    color: Colors.deepPurpleAccent.withOpacity(0.4),
                     blurRadius: 20,
                     spreadRadius: 2,
                   ),
@@ -110,16 +108,15 @@ class _LoadingScreenState extends State<LoadingScreen> {
             // Tagline
             Text(
               'Discover Your Next Favorite Movie',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade400,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 40),
 
             // Loading Indicator
             const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Colors.deepPurpleAccent,
+              ),
             ),
           ],
         ),

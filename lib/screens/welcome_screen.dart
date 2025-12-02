@@ -14,7 +14,7 @@ class WelcomeScreen extends StatelessWidget {
             Column(
               children: [
                 const SizedBox(height: 60),
-                
+
                 // Top section with logo and branding
                 Expanded(
                   flex: 3,
@@ -25,7 +25,7 @@ class WelcomeScreen extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.amber.shade800.withOpacity(0.3),
+                          Colors.deepPurpleAccent.withOpacity(0.25),
                           Colors.black,
                         ],
                       ),
@@ -39,11 +39,14 @@ class WelcomeScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: LinearGradient(
-                              colors: [Colors.amber.shade600, Colors.orange.shade800],
+                              colors: [
+                                Colors.deepPurpleAccent,
+                                Colors.purple.shade700,
+                              ],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.amber.withOpacity(0.4),
+                                color: Colors.deepPurpleAccent.withOpacity(0.4),
                                 blurRadius: 30,
                                 spreadRadius: 5,
                               ),
@@ -79,7 +82,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 // Features section
                 Expanded(
                   flex: 2,
@@ -109,7 +112,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                
+
                 // Get Started Button section
                 Expanded(
                   flex: 1,
@@ -126,8 +129,8 @@ class WelcomeScreen extends StatelessWidget {
                               Navigator.pushNamed(context, '/signup');
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber.shade700,
-                              foregroundColor: Colors.black,
+                              backgroundColor: Colors.deepPurpleAccent,
+                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -150,7 +153,7 @@ class WelcomeScreen extends StatelessWidget {
                 const SizedBox(height: 30),
               ],
             ),
-            
+
             Positioned(
               top: 10,
               right: 16,
@@ -163,7 +166,10 @@ class WelcomeScreen extends StatelessWidget {
                     },
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                     ),
                     child: const Text(
                       'Log In',
@@ -179,9 +185,15 @@ class WelcomeScreen extends StatelessWidget {
                       Navigator.pushNamed(context, '/signup');
                     },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.amber,
-                      side: const BorderSide(color: Colors.amber, width: 1),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      foregroundColor: Colors.deepPurpleAccent,
+                      side: const BorderSide(
+                        color: Colors.deepPurpleAccent,
+                        width: 1,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -209,14 +221,10 @@ class WelcomeScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.amber.withOpacity(0.15),
+            color: Colors.deepPurpleAccent.withOpacity(0.15),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: Colors.amber,
-            size: 24,
-          ),
+          child: Icon(icon, color: Colors.deepPurpleAccent, size: 24),
         ),
         const SizedBox(width: 15),
         Column(
@@ -232,10 +240,7 @@ class WelcomeScreen extends StatelessWidget {
             ),
             Text(
               subtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
             ),
           ],
         ),

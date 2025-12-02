@@ -18,7 +18,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   final AuthService _authService = AuthService();
   final DatabaseService _databaseService = DatabaseService();
   final StorageService _storageService = StorageService();
-  
+
   UserModel? _adminData;
   bool _isLoading = true;
 
@@ -125,13 +125,15 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
         actions: [
           if (!_isLoading && _adminData != null)
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.amber),
+              icon: const Icon(Icons.edit, color: Colors.deepPurpleAccent),
               onPressed: _showEditDialog,
             ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.amber))
+          ? const Center(
+              child: CircularProgressIndicator(color: Colors.deepPurpleAccent),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -142,14 +144,16 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.amber.shade800.withOpacity(0.3),
-                          Colors.orange.shade900.withOpacity(0.2),
+                          Colors.deepPurpleAccent.withOpacity(0.3),
+                          Colors.purple.shade700.withOpacity(0.2),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                      border: Border.all(
+                        color: Colors.deepPurpleAccent.withOpacity(0.3),
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -163,7 +167,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               child: _getProfileImage() == null
                                   ? Text(
                                       _adminData?.fullName.isNotEmpty == true
-                                          ? _adminData!.fullName[0].toUpperCase()
+                                          ? _adminData!.fullName[0]
+                                                .toUpperCase()
                                           : 'A',
                                       style: const TextStyle(
                                         color: Colors.white,
@@ -180,12 +185,16 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
-                                    colors: [Colors.amber, Colors.orange],
+                                    colors: [
+                                      Colors.deepPurpleAccent,
+                                      Colors.purple,
+                                    ],
                                   ),
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.amber.withOpacity(0.5),
+                                      color: Colors.deepPurpleAccent
+                                          .withOpacity(0.5),
                                       blurRadius: 8,
                                     ),
                                   ],
@@ -193,14 +202,14 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                 child: const Icon(
                                   Icons.admin_panel_settings,
                                   size: 20,
-                                  color: Colors.black,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Name
                         Text(
                           _adminData?.fullName ?? 'Admin',
@@ -211,7 +220,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        
+
                         // Admin Badge
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -220,14 +229,14 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           ),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Colors.amber, Colors.orange],
+                              colors: [Colors.deepPurpleAccent, Colors.purple],
                             ),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Text(
                             'ADMINISTRATOR',
                             style: TextStyle(
-                              color: Colors.black,
+                              color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               letterSpacing: 1,
@@ -326,7 +335,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             color: Colors.grey[900],
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, color: Colors.amber, size: 20),
+          child: Icon(icon, color: Colors.deepPurpleAccent, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -335,18 +344,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
             ],
           ),
@@ -375,7 +378,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
   final DatabaseService _databaseService = DatabaseService();
   final StorageService _storageService = StorageService();
   final AuthService _authService = AuthService();
-  
+
   late TextEditingController _nameController;
   DateTime? _selectedBirthDate;
   Uint8List? _selectedImage;
@@ -402,7 +405,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
       maxHeight: 512,
       imageQuality: 75,
     );
-    
+
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setState(() {
@@ -421,8 +424,8 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
         return Theme(
           data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: Colors.amber,
-              onPrimary: Colors.black,
+              primary: Colors.deepPurpleAccent,
+              onPrimary: Colors.white,
               surface: Color(0xFF1E1E1E),
               onSurface: Colors.white,
             ),
@@ -431,7 +434,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
         );
       },
     );
-    
+
     if (picked != null) {
       setState(() {
         _selectedBirthDate = picked;
@@ -443,7 +446,8 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
     if (_selectedImage != null) {
       return MemoryImage(_selectedImage!);
     }
-    if (widget.adminData.photoURL != null && widget.adminData.photoURL!.isNotEmpty) {
+    if (widget.adminData.photoURL != null &&
+        widget.adminData.photoURL!.isNotEmpty) {
       if (widget.adminData.photoURL!.startsWith('http')) {
         return NetworkImage(widget.adminData.photoURL!);
       } else {
@@ -464,7 +468,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select a birth date'),
-          backgroundColor: Colors.orange,
+          backgroundColor: Colors.deepPurpleAccent,
         ),
       );
       return;
@@ -477,7 +481,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
       if (userId == null) throw Exception('User not logged in');
 
       String? photoURL = widget.adminData.photoURL;
-      
+
       if (_selectedImage != null) {
         photoURL = await _storageService.imageToBase64(_selectedImage);
       }
@@ -502,10 +506,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -516,7 +517,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
   @override
   Widget build(BuildContext context) {
     final displayImage = _getDisplayImage();
-    
+
     return Dialog(
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -575,7 +576,8 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                           child: displayImage == null
                               ? Text(
                                   widget.adminData.fullName.isNotEmpty
-                                      ? widget.adminData.fullName[0].toUpperCase()
+                                      ? widget.adminData.fullName[0]
+                                            .toUpperCase()
                                       : 'A',
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -591,13 +593,13 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(
-                              color: Colors.amber,
+                              color: Colors.deepPurpleAccent,
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
                               Icons.camera_alt,
                               size: 16,
-                              color: Colors.black,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -646,7 +648,11 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.lock_outline, color: Colors.grey, size: 16),
+                      const Icon(
+                        Icons.lock_outline,
+                        color: Colors.grey,
+                        size: 16,
+                      ),
                     ],
                   ),
                 ),
@@ -659,7 +665,10 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                   decoration: InputDecoration(
                     labelText: 'Full Name',
                     labelStyle: const TextStyle(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.person_outline, color: Colors.grey),
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      color: Colors.grey,
+                    ),
                     filled: true,
                     fillColor: Colors.grey[900],
                     border: OutlineInputBorder(
@@ -668,7 +677,9 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.amber),
+                      borderSide: const BorderSide(
+                        color: Colors.deepPurpleAccent,
+                      ),
                     ),
                   ),
                   validator: (value) {
@@ -705,7 +716,11 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.calendar_today, color: Colors.amber, size: 20),
+                        const Icon(
+                          Icons.calendar_today,
+                          color: Colors.amber,
+                          size: 20,
+                        ),
                       ],
                     ),
                   ),
@@ -717,7 +732,9 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: _isSaving ? null : () => Navigator.pop(context),
+                        onPressed: _isSaving
+                            ? null
+                            : () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           side: const BorderSide(color: Colors.grey),
@@ -736,8 +753,8 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _saveProfile,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber,
-                          foregroundColor: Colors.black,
+                          backgroundColor: Colors.deepPurpleAccent,
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -749,7 +766,7 @@ class _EditAdminProfileDialogState extends State<EditAdminProfileDialog> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.black,
+                                  color: Colors.white,
                                 ),
                               )
                             : const Text(
