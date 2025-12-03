@@ -501,17 +501,25 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             Text(
               user.email,
               style: TextStyle(color: Colors.grey[500], fontSize: 13),
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Icon(Icons.cake_outlined, size: 14, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${user.age} years old',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.cake_outlined, size: 14, color: Colors.grey[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${user.age} years old',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,

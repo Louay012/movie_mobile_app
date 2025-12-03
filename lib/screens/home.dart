@@ -272,6 +272,7 @@ class _HomePageState extends State<HomePage> {
       
       return matchesQuery && matchesGenre;
     }).toList();
+    _loadMoreIfFilteredTooFew();
   }
 
   void _toggleGenre(int genreId) {
@@ -391,6 +392,17 @@ class _HomePageState extends State<HomePage> {
         });
 
         _showErrorSnackBar('Could not load more movies. Please try again.');
+      }
+    }
+  }
+
+  Future<void> _loadMoreIfFilteredTooFew() async {
+    // If filters are active and we have less than 12 movies, try loading more
+    if (_selectedGenres.isNotEmpty && _filtered.length < 12 && _hasMore && !_isLoadingMore) {
+      await _loadMoreMovies();
+      // Recursively check if we still need more
+      if (_filtered.length < 12 && _hasMore) {
+        await _loadMoreIfFilteredTooFew();
       }
     }
   }

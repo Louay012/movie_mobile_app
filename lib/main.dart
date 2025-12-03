@@ -16,6 +16,7 @@ import 'screens/deactivated_screen.dart';
 import 'screens/admin_profile_screen.dart';
 import 'widgets/auth_wrapper.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -35,8 +36,9 @@ class MovieApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: const LoadingScreen(),
+      initialRoute: '/',
       routes: {
+        '/': (context) => const LoadingScreen(),
         '/welcome': (context) => const GuestWrapper(child: WelcomeScreen()),
         '/signup': (context) => const GuestWrapper(child: SignUpScreen()),
         '/login': (context) => const GuestWrapper(child: LoginScreen()),

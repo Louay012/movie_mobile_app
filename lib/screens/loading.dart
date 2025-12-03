@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 import '../utils/constants.dart';
+import '../widgets/movieflix_logo.dart';
 
 class LoadingScreen extends StatefulWidget {
   const LoadingScreen({super.key});
@@ -67,42 +68,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // App Logo - Updated to match new branding
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [Colors.deepPurpleAccent, Colors.purple.shade700],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.deepPurpleAccent.withOpacity(0.4),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.movie_filter,
-                size: 50,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // App Name
-            const Text(
-              'Film Explorer',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            const MovieFlixLogo(size: 100),
             const SizedBox(height: 8),
 
             // Tagline
@@ -112,7 +78,6 @@ class _LoadingScreenState extends State<LoadingScreen> {
             ),
             const SizedBox(height: 40),
 
-            // Loading Indicator
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(
                 Colors.deepPurpleAccent,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/movieflix_logo.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -33,42 +34,7 @@ class WelcomeScreen extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // App Icon
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.deepPurpleAccent,
-                                Colors.purple.shade700,
-                              ],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.deepPurpleAccent.withOpacity(0.4),
-                                blurRadius: 30,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.movie_filter,
-                            size: 80,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                        // App Name
-                        const Text(
-                          'Film Explorer',
-                          style: TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 2,
-                          ),
-                        ),
+                        const MovieFlixLogo(size: 100),
                         const SizedBox(height: 10),
                         Text(
                           'Your Ultimate Movie Companion',
