@@ -161,6 +161,8 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
             itemBuilder: (context, index) {
               final movie = movies[index];
               final genres = (movie['genres'] as List?)?.join(', ') ?? '';
+              final posterUrl = movie['posterUrl'] ?? movie['poster'] ?? '';
+              final rating = movie['voteAverage'] ?? movie['rating'] ?? 0.0;
 
               return GestureDetector(
                 onTap: () => _showMovieDetailsDialog(movie),
@@ -184,11 +186,9 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                           topLeft: Radius.circular(16),
                           bottomLeft: Radius.circular(16),
                         ),
-                        child:
-                            movie['poster'] != null &&
-                                movie['poster'].isNotEmpty
+                        child: posterUrl.isNotEmpty
                             ? Image.network(
-                                movie['poster'],
+                                posterUrl,
                                 width: 100,
                                 height: 150,
                                 fit: BoxFit.cover,
@@ -214,7 +214,6 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                                 ),
                               ),
                       ),
-                      // Movie Details
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.all(12),
@@ -241,7 +240,7 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${(movie['voteAverage'] ?? 0.0).toStringAsFixed(1)}',
+                                    '${(rating is double ? rating : double.tryParse(rating.toString()) ?? 0.0).toStringAsFixed(1)}',
                                     style: const TextStyle(
                                       color: Colors.deepPurpleAccent,
                                       fontSize: 14,
@@ -269,7 +268,7 @@ class _AdminMoviesScreenState extends State<AdminMoviesScreen> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
@@ -340,6 +339,11 @@ class _MovieDetailsDialog extends StatelessWidget {
     final genres = (movie['genres'] as List?)?.join(', ') ?? 'N/A';
     final productions = (movie['productions'] as List?)?.join(', ') ?? '';
 
+    // Use posterUrl for display
+    final posterUrl = movie['posterUrl'] ?? movie['poster'] ?? '';
+    // Use rating for display
+    final rating = movie['voteAverage'] ?? movie['rating'] ?? 0.0;
+
     return Dialog(
       backgroundColor: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -356,9 +360,10 @@ class _MovieDetailsDialog extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(20),
                   ),
-                  child: movie['poster'] != null && movie['poster'].isNotEmpty
+                  // Use posterUrl
+                  child: posterUrl.isNotEmpty
                       ? Image.network(
-                          movie['poster'],
+                          posterUrl,
                           width: double.infinity,
                           height: 200,
                           fit: BoxFit.cover,
@@ -468,7 +473,7 @@ class _MovieDetailsDialog extends StatelessWidget {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${(movie['voteAverage'] ?? 0.0).toStringAsFixed(1)}',
+                                '${(rating is double ? rating : double.tryParse(rating.toString()) ?? 0.0).toStringAsFixed(1)}',
                                 style: const TextStyle(
                                   color: Colors.deepPurpleAccent,
                                   fontWeight: FontWeight.bold,
@@ -647,14 +652,16 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
     _overviewController = TextEditingController(
       text: widget.movie?['overview'] ?? '',
     );
+    // Initialize poster controller with posterUrl or poster
     _posterController = TextEditingController(
-      text: widget.movie?['poster'] ?? '',
+      text: widget.movie?['posterUrl'] ?? widget.movie?['poster'] ?? '',
     );
     _trailerController = TextEditingController(
       text: widget.movie?['trailerUrl'] ?? '',
     );
+    // Initialize rating controller with voteAverage or rating
     _ratingController = TextEditingController(
-      text: widget.movie?['voteAverage']?.toString() ?? '',
+      text: (widget.movie?['voteAverage'] ?? widget.movie?['rating'])?.toString() ?? '',
     );
     _genresController = TextEditingController(
       text: (widget.movie?['genres'] as List?)?.join(', ') ?? '',
@@ -767,14 +774,18 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
       final releaseDate =
           '${_selectedReleaseDate!.year}-${_selectedReleaseDate!.month.toString().padLeft(2, '0')}-${_selectedReleaseDate!.day.toString().padLeft(2, '0')}';
 
+      // Use posterUrl and rating for update/add
+      final posterUrl = _posterController.text.trim();
+      final rating = double.tryParse(_ratingController.text) ?? 0.0;
+
       if (_isEditing) {
         await _adminService.updateMovie(widget.movie!['id'], {
           'title': _titleController.text.trim(),
           'overview': _overviewController.text.trim(),
-          'poster': _posterController.text.trim(),
-          'posterPath': _posterController.text.trim(),
+          'posterUrl': posterUrl, // Use posterUrl
+          'posterPath': posterUrl, // Also update posterPath if it exists
           'trailerUrl': _trailerController.text.trim(),
-          'voteAverage': double.tryParse(_ratingController.text) ?? 0.0,
+          'voteAverage': rating, // Use rating
           'releaseDate': releaseDate,
           'genres': genres,
           'productions': productions,
@@ -787,9 +798,9 @@ class _AddMovieDialogState extends State<_AddMovieDialog> {
         await _adminService.addMovie(
           title: _titleController.text.trim(),
           overview: _overviewController.text.trim(),
-          posterUrl: _posterController.text.trim(),
+          posterUrl: posterUrl, // Use posterUrl
           trailerUrl: _trailerController.text.trim(),
-          rating: double.tryParse(_ratingController.text) ?? 0.0,
+          rating: rating, // Use rating
           releaseDate: releaseDate,
           genres: genres,
           productions: productions,

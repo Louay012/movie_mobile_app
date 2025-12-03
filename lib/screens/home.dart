@@ -8,6 +8,28 @@ import 'movie_details.dart';
 import 'favorites.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+const Map<int, String> genreMap = {
+  28: 'Action',
+  12: 'Adventure',
+  16: 'Animation',
+  35: 'Comedy',
+  80: 'Crime',
+  99: 'Documentary',
+  18: 'Drama',
+  10751: 'Family',
+  14: 'Fantasy',
+  36: 'History',
+  27: 'Horror',
+  10402: 'Music',
+  9648: 'Mystery',
+  10749: 'Romance',
+  878: 'Sci-Fi',
+  10770: 'TV Movie',
+  53: 'Thriller',
+  10752: 'War',
+  37: 'Western',
+};
+
 class Movie {
   final dynamic id;
   final String title;
@@ -15,6 +37,7 @@ class Movie {
   final double rating;
   final String overview;
   final List<int> genreIds;
+  final List<String>? genres;
   final String releaseDate;
   final bool isCustom;
   final int? runtime;
@@ -33,6 +56,7 @@ class Movie {
     required this.rating,
     required this.overview,
     required this.genreIds,
+    this.genres,
     required this.releaseDate,
     this.isCustom = false,
     this.runtime,
@@ -107,6 +131,13 @@ class Movie {
                   ),
                 )
               : <int>[]);
+
+    final List<String>? genres = (json['genres'] is List)
+        ? List<String>.from(
+            (json['genres'] as List).map((e) => e.toString()),
+          )
+        : null;
+
     final isCustom = json['isCustom'] == true;
 
     final runtime = json['runtime'] is int
@@ -135,6 +166,7 @@ class Movie {
       releaseDate: releaseDate,
       rating: rating,
       genreIds: genreIds,
+      genres: genres,
       isCustom: isCustom,
       runtime: runtime,
       budget: budget,
@@ -171,6 +203,8 @@ class _HomePageState extends State<HomePage> {
   int currentPage = 1;
   String? _errorMessage;
   final Map<dynamic, String> _trailerCache = {};
+
+  Set<int> _selectedGenres = {};
 
   @override
   void initState() {
@@ -214,22 +248,50 @@ class _HomePageState extends State<HomePage> {
 
   void _applyFilter() {
     final source = _allMovies ?? [];
-    if (_query.isEmpty) {
-      _filtered = List.from(source);
-    } else {
-      _filtered = source
-          .where(
-            (m) =>
-                m.title.toLowerCase().contains(_query) ||
-                m.overview.toLowerCase().contains(_query) ||
-                m.genreIds
-                    .map((id) => id.toString())
-                    .join(' ')
-                    .toLowerCase()
-                    .contains(_query),
-          )
-          .toList();
-    }
+    _filtered = source.where((m) {
+      final matchesQuery = _query.isEmpty ||
+          m.title.toLowerCase().contains(_query) ||
+          m.overview.toLowerCase().contains(_query);
+      
+      bool matchesGenre = true;
+      if (_selectedGenres.isNotEmpty) {
+        if (m.isCustom && m.genres != null && m.genres!.isNotEmpty) {
+          // For custom movies: convert selected genre IDs to names and check against genres list
+          final selectedGenreNames = _selectedGenres
+              .where((id) => genreMap.containsKey(id))
+              .map((id) => genreMap[id]!.toLowerCase())
+              .toSet();
+          matchesGenre = selectedGenreNames.every(
+            (name) => m.genres!.any((g) => g.toLowerCase() == name),
+          );
+        } else {
+          // For API movies: check genreIds
+          matchesGenre = _selectedGenres.every((selectedId) => m.genreIds.contains(selectedId));
+        }
+      }
+      
+      return matchesQuery && matchesGenre;
+    }).toList();
+  }
+
+  void _toggleGenre(int genreId) {
+    setState(() {
+      if (_selectedGenres.contains(genreId)) {
+        _selectedGenres.remove(genreId);
+      } else {
+        _selectedGenres.add(genreId);
+      }
+      _applyFilter();
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedGenres.clear();
+      _searchCtrl.clear();
+      _query = '';
+      _applyFilter();
+    });
   }
 
   @override
@@ -504,6 +566,7 @@ class _HomePageState extends State<HomePage> {
       'revenue': movie.revenue,
       'tagline': movie.tagline,
       'productions': movie.productions,
+      'genres': movie.genres,
     };
   }
 
@@ -517,110 +580,81 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _signOut() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          'Are you sure you want to sign out?',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: Colors.grey.shade400),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text('Sign Out'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _authService.signOut();
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Film Explorer'),
         backgroundColor: Colors.black,
         elevation: 0,
         automaticallyImplyLeading: false,
+        title: const Text(
+          'Movies',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.people),
-            color: Colors.deepPurpleAccent,
-            tooltip: 'Find Matches',
-            onPressed: () {
-              Navigator.pushNamed(context, '/matching');
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.favorite),
-            color: Colors.red,
+            icon: const Icon(Icons.favorite, color: Colors.red),
             onPressed: _navigateToFavorites,
           ),
+          IconButton(
+            icon: const Icon(Icons.people, color: Colors.deepPurpleAccent),
+            onPressed: () => Navigator.pushNamed(context, '/matching'),
+          ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.person),
+            icon: const Icon(Icons.person, color: Colors.deepPurpleAccent),
             color: Colors.grey.shade900,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 'profile') {
                 Navigator.pushNamed(context, '/profile');
               } else if (value == 'signout') {
-                _signOut();
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: Colors.grey.shade900,
+                    title: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+                    content: const Text('Are you sure you want to sign out?', style: TextStyle(color: Colors.grey)),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: const Text('Sign Out'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true && mounted) {
+                  await _authService.signOut();
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                }
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'profile',
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.person_outline,
-                      color: Colors.deepPurpleAccent,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Profile',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    Icon(Icons.person_outline, color: Colors.deepPurpleAccent),
+                    SizedBox(width: 10),
+                    Text('Profile', style: TextStyle(color: Colors.white)),
                   ],
                 ),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'signout',
                 child: Row(
                   children: [
-                    Icon(Icons.logout, color: Colors.red.shade400, size: 20),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Sign Out',
-                      style: TextStyle(color: Colors.red.shade400),
-                    ),
+                    Icon(Icons.logout, color: Colors.red),
+                    SizedBox(width: 10),
+                    Text('Sign Out', style: TextStyle(color: Colors.red)),
                   ],
                 ),
               ),
@@ -630,64 +664,61 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Column(
         children: [
+          // Search bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchCtrl,
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search movies...',
-                filled: true,
-                fillColor: Colors.white10,
-                prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                suffixIcon: _query.isNotEmpty
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: (_query.isNotEmpty || _selectedGenres.isNotEmpty)
                     ? IconButton(
-                        icon: const Icon(Icons.clear, color: Colors.white70),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                        },
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: _clearFilters,
                       )
                     : null,
+                filled: true,
+                fillColor: Colors.grey.shade900,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
-              style: const TextStyle(color: Colors.white),
             ),
           ),
-
-          if (_errorMessage != null &&
-              _allMovies != null &&
-              _allMovies!.isNotEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.red.shade900.withOpacity(0.3),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.warning_amber,
-                    color: Colors.deepPurpleAccent,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+          
+          SizedBox(
+            height: 50,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: genreMap.entries.map((entry) {
+                final isSelected = _selectedGenres.contains(entry.key);
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(entry.value),
+                    selected: isSelected,
+                    onSelected: (_) => _toggleGenre(entry.key),
+                    backgroundColor: Colors.grey.shade800,
+                    selectedColor: Colors.deepPurpleAccent,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey.shade300,
+                      fontSize: 12,
                     ),
+                    checkmarkColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
-                  TextButton(
-                    onPressed: _loadMoreMovies,
-                    child: const Text('RETRY', style: TextStyle(fontSize: 12)),
-                  ),
-                ],
-              ),
+                );
+              }).toList(),
             ),
+          ),
+          const SizedBox(height: 10),
 
+          // Movies grid
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refresh,
@@ -742,7 +773,7 @@ class _HomePageState extends State<HomePage> {
                     );
                   }
 
-                  final source = (_query.isNotEmpty)
+                  final source = (_query.isNotEmpty || _selectedGenres.isNotEmpty)
                       ? _filtered
                       : (_allMovies ?? []);
 
@@ -758,8 +789,8 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 20),
                         Center(
                           child: Text(
-                            _query.isNotEmpty
-                                ? 'No movies found for "$_query"'
+                            _query.isNotEmpty || _selectedGenres.isNotEmpty
+                                ? 'No movies found matching your filters'
                                 : 'No movies available',
                             style: const TextStyle(
                               color: Colors.white70,

@@ -1,13 +1,49 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/database_service.dart';
 
-class AdminHomeScreen extends StatelessWidget {
+class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authService = AuthService();
+  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
+}
 
+class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  final AuthService _authService = AuthService();
+  final DatabaseService _databaseService = DatabaseService();
+  String _adminName = 'Admin';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAdminName();
+  }
+
+  Future<void> _loadAdminName() async {
+    try {
+      final userId = _authService.getCurrentUserId();
+      if (userId != null) {
+        final userData = await _databaseService.getUser(userId);
+        if (userData != null && mounted) {
+          setState(() {
+            _adminName = userData.fullName;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading admin name: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -55,10 +91,10 @@ class AdminHomeScreen extends StatelessWidget {
                 ),
               );
               if (confirm == true && context.mounted) {
-                await authService.signOut();
+                await _authService.signOut();
                 Navigator.of(
                   context,
-                ).pushNamedAndRemoveUntil('/welcome', (route) => false);
+                ).pushNamedAndRemoveUntil('/login', (route) => false);
               }
             },
           ),
@@ -66,7 +102,6 @@ class AdminHomeScreen extends StatelessWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          // Added SingleChildScrollView to prevent overflow
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -96,20 +131,29 @@ class AdminHomeScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 15),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Welcome, Admin',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
+                            _isLoading
+                                ? const SizedBox(
+                                    height: 24,
+                                    width: 100,
+                                    child: LinearProgressIndicator(
+                                      backgroundColor: Colors.white24,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : Text(
+                                    'Welcome, $_adminName',
+                                    style: const TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                            const SizedBox(height: 5),
+                            const Text(
                               'Manage users and movies from here',
                               style: TextStyle(
                                 fontSize: 14,

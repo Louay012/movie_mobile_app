@@ -21,6 +21,28 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
   bool _isLoadingTrailer = false;
   Map<String, dynamic>? _movieDetails;
 
+  static const Map<int, String> genreMap = {
+    28: 'Action',
+    12: 'Adventure',
+    16: 'Animation',
+    35: 'Comedy',
+    80: 'Crime',
+    99: 'Documentary',
+    18: 'Drama',
+    10751: 'Family',
+    14: 'Fantasy',
+    36: 'History',
+    27: 'Horror',
+    10402: 'Music',
+    9648: 'Mystery',
+    10749: 'Romance',
+    878: 'Sci-Fi',
+    10770: 'TV Movie',
+    53: 'Thriller',
+    10752: 'War',
+    37: 'Western',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -272,11 +294,22 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
 
     List<Map<String, dynamic>>? genres;
     if (_movieDetails?['genres'] != null) {
+      // TMDB movies have genres in details response
       final rawList = _movieDetails!['genres'] as List;
       genres = rawList.map((g) => Map<String, dynamic>.from(g as Map)).toList();
-    } else if (isCustomMovie && widget.movie.productions != null) {
-      // For custom movies without genre data, we don't show genres section
-      genres = null;
+    } else if (isCustomMovie) {
+      final customGenres = widget.movie.genres;
+      if (customGenres != null && customGenres.isNotEmpty) {
+        genres = customGenres
+            .map((g) => <String, dynamic>{'id': 0, 'name': g})
+            .toList();
+      }
+    }
+    if (genres == null && widget.movie.genreIds.isNotEmpty) {
+      genres = widget.movie.genreIds
+          .where((id) => genreMap.containsKey(id))
+          .map((id) => <String, dynamic>{'id': id, 'name': genreMap[id]})
+          .toList();
     }
 
     return Scaffold(
@@ -432,7 +465,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                     ],
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
                   // Watch Trailer Button
                   SizedBox(
@@ -603,7 +636,7 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.grey[800],
+                                color: Colors.grey[850],
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
